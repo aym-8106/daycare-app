@@ -1,0 +1,11 @@
+{
+    "require": {
+        "stripe/stripe-php": "^17.2",
+        "ezyang/htmlpurifier": "^4.18",
+        "markbaker/complex": "^3.0",
+        "markbaker/matrix": "^3.0",
+        "myclabs/php-enum": "^1.8",
+        "phpoffice/phpspreadsheet": "^1.18",
+        "symfony/polyfill-mbstring": "^1.32"
+    }
+}

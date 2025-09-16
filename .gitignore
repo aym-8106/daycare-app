@@ -1,0 +1,62 @@
+# WordPress
+wp-config.php
+wp-content/uploads/
+wp-content/cache/
+wp-content/backups/
+.htaccess
+
+# CodeIgniter
+/welfare/application/cache/
+/welfare/application/logs/
+/welfare/uploads/
+/welfare/application/config/database.php
+
+# Sensitive files
+db.php
+.user.ini
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Database dumps
+*.sql
+*.db
+*.sqlite
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Node modules (if any)
+node_modules/
+npm-debug.log
+
+# Composer
+/vendor/
+composer.lock
+
+# Stripe configuration (contains sensitive keys)
+welfare/application/config/stripe.php
+welfare/vendor/stripe/
+
+# Image thumbnails
+.tmb/
+
+# Backup files
+*.bak
+*.backup
+*.old
