@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(php:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl:*)",
+      "Read(//c/xampp/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

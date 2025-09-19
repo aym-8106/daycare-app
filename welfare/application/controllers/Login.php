@@ -45,12 +45,18 @@ class Login extends UserController
             if (!empty($user)) {
                 // Correctly set the session data
                 $this->session->set_userdata('staff', $user);
-                
+
                 // Add a flag to indicate the user is logged in
                 $this->session->set_userdata('staff_logged_in', TRUE);
-                
-                // Optionally set the user's role
-                $this->session->set_userdata('staff__role', ROLE_STAFF);
+
+                // Set role based on user type
+                if(isset($user['user_type']) && $user['user_type'] == 'admin') {
+                    $this->session->set_userdata('staff__role', ROLE_ADMIN);
+                    $this->session->set_userdata('is_admin', TRUE);
+                } else {
+                    $this->session->set_userdata('staff__role', ROLE_STAFF);
+                    $this->session->set_userdata('is_admin', FALSE);
+                }
                 
                 // Debug: Print the session data to verify it's being set
                 // echo "<pre>"; print_r($this->session->userdata()); echo "</pre>"; exit;
@@ -73,11 +79,18 @@ class Login extends UserController
                 //     "platform" => $this->agent->platform());
 
                 // $this->staff_model->lastLogin($loginInfo);
-                $redirect = $this->input->get("redirect");
-                if(!empty($redirect)) {
-                    redirect('/'.$redirect);
+                // Role-based redirect
+                if(isset($user['user_type']) && $user['user_type'] == 'admin') {
+                    // Admin user - redirect to admin dashboard
+                    redirect('admin/dashboard');
+                } else {
+                    // Regular staff - redirect to staff dashboard
+                    $redirect = $this->input->get("redirect");
+                    if(!empty($redirect)) {
+                        redirect($redirect);
+                    }
+                    redirect('dashboard');
                 }
-                redirect('/dashboard');
             } else {
                 // $staffs = $this->staff_model->getList('*', array('BaseTbl.company_id' => $this->data['company_id']), false, 0);
                 // $this->data['staffs'] = $staffs;

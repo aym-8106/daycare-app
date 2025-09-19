@@ -196,17 +196,6 @@ class Attendance_model extends Base_model
         return $query->result_array();
     }
     
-    public function update_attendance_record($data)
-    {
-        $this->db->where('attendance_id', $data['attendance_id']);
-        return $this->db->update('tbl_attendance', [
-            'work_time' => $data['work_time'],
-            'leave_time' => $data['leave_time'],
-            'break_time' => $data['break_time'] * 60, // convert minutes to seconds
-            'overtime_start_time' => $data['overtime_start_time'],
-            'overtime_end_time' => $data['overtime_end_time']
-        ]);
-    }
 
     function get_company_staff($company_id) {
         $this->db->select('staff_id,staff_name');

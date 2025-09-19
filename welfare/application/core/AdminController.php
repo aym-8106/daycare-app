@@ -64,8 +64,19 @@ class AdminController extends WixController
         if ($role == ROLE_GUEST) return true;
         switch ($role) {
             case ROLE_ADMIN:
+                // Check admin session first
                 $this->user = $this->session->userdata('admin');
                 if (!empty($this->user)) {
+                    $this->header['user'] = $this->user;
+                    return true;
+                }
+
+                // Check staff session for admin role
+                $staff = $this->session->userdata('staff');
+                if (!empty($staff) &&
+                    ((isset($staff['user_type']) && $staff['user_type'] == 'admin') ||
+                     $this->session->userdata('staff__role') == ROLE_ADMIN)) {
+                    $this->user = $staff;
                     $this->header['user'] = $this->user;
                     return true;
                 }

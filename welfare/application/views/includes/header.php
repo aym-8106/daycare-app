@@ -68,7 +68,7 @@
             <!-- mini logo for sidebar mini 50x50 pixels -->
             <span class="logo-mini"><b>管理</b></span>
             <!-- logo for regular state and mobile devices -->
-            <span class="logo-lg">CareNavi訪問看護</span>
+            <span class="logo-lg">CareNavi通所介護</span>
         </a>
         <!-- Header Navbar: style can be found in header.less -->
         <nav class="navbar navbar-static-top" role="navigation">
@@ -137,19 +137,21 @@
                 </li>
                 <li <?php if ($page == 'patient'){ ?> class="active" <?php } ?> >
                     <a href="<?php echo base_url(); ?>setting/patient">
-                        <i class="fa fa-user-o"></i> <span>利用者設定</span>
+                        <i class="fa fa-user-o"></i> <span>利用者管理</span>
                     </a>
                 </li>
                 <li <?php if ($page == 'staff'){ ?> class="active" <?php } ?> >
                     <a href="<?php echo base_url(); ?>setting/staff">
-                        <i class="fa fa-user-circle-o"></i> <span>スタッフ設定</span>
+                        <i class="fa fa-user-circle-o"></i> <span>職員管理</span>
                     </a>
                 </li>
+                <!-- 指示書管理は通所介護では不要のため非表示
                 <li <?php if ($page == 'instruction'){ ?> class="active" <?php } ?> >
                     <a href="<?php echo base_url(); ?>instruction">
                         <i class="fa fa-file-text-o"></i> <span>指示書管理</span>
                     </a>
                 </li>
+                -->
                 <li <?php if ($page == 'report'){ ?> class="active" <?php } ?> >
                     <a href="<?php echo base_url(); ?>report">
                         <i class="fa fa-pencil-square-o"></i> <span>日報管理</span>

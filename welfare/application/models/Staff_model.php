@@ -195,7 +195,21 @@ class Staff_model extends Base_model
         if(empty($data['email']) || empty($data['staff_password'])) {
             return false;
         }
-        $this->db->select('BaseTbl.staff_id, BaseTbl.company_id, BaseTbl.staff_name, BaseTbl.staff_password, Company.company_name');
+
+        // First check admin table
+        $this->db->select('admin_id as staff_id, 0 as company_id, admin_name as staff_name, admin_password as staff_password, "管理者" as company_name, "admin" as user_type');
+        $this->db->from('tbl_admin');
+        $this->db->where('admin_email', $data['email']);
+        $this->db->where('admin_password', sha1($data['staff_password']));
+        $this->db->where('del_flag', 0);
+
+        $admin_result = $this->db->get()->row_array();
+        if($admin_result) {
+            return $admin_result;
+        }
+
+        // If admin not found, check staff table
+        $this->db->select('BaseTbl.staff_id, BaseTbl.company_id, BaseTbl.staff_name, BaseTbl.staff_password, Company.company_name, "staff" as user_type');
         $this->db->from('tbl_staff as BaseTbl');
         $this->db->join('tbl_company as Company', 'Company.company_id = BaseTbl.company_id','left');
         $this->db->where('BaseTbl.staff_mail_address',$data['email']);

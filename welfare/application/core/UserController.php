@@ -74,6 +74,10 @@ class UserController extends WixController
             case ROLE_STAFF:
                 $staff = $this->session->userdata('staff');
                 if (!empty($staff['staff_id'])) {
+                    // Exclude admin users from staff access
+                    if (isset($staff['user_type']) && $staff['user_type'] == 'admin') {
+                        return false;
+                    }
                     $this->user = $this->staff_model->get($staff['staff_id']);
                     $this->header['user'] = $this->user;
                     return true;

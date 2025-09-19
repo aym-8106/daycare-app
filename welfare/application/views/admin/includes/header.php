@@ -64,7 +64,7 @@
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                             <img src="<?php echo base_url(); ?>assets/dist/img/avatar.png" class="user-image"
                                  alt="User Image"/>
-                            <span class="hidden-xs"><?php echo($user['admin_name']); ?></span>
+                            <span class="hidden-xs"><?php echo isset($user['admin_name']) ? $user['admin_name'] : (isset($user['staff_name']) ? $user['staff_name'] : '管理者'); ?></span>
                         </a>
                         <ul class="dropdown-menu">
                             <!-- User image -->
@@ -73,7 +73,7 @@
                                 <img src="<?php echo base_url(); ?>assets/dist/img/avatar.png" class="img-circle"
                                      alt="User Image"/>
                                 <p>
-                                    <?php echo $user['admin_name']; ?>
+                                    <?php echo isset($user['admin_name']) ? $user['admin_name'] : (isset($user['staff_name']) ? $user['staff_name'] : '管理者'); ?>
                                     <small><?php echo '管理者'; ?></small>
                                 </p>
 
@@ -139,6 +139,28 @@
                             <span>出退勤管理</span>
                         </a>
                     </li>
+
+                    <!-- 管理者用職員機能 -->
+                    <li class="header">職員機能</li>
+                    <li>
+                        <a href="<?php echo base_url(); ?>attendance">
+                            <i class="fa fa-clock-o"></i>
+                            <span>出退勤</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo base_url(); ?>schedule">
+                            <i class="fa fa-calendar"></i>
+                            <span>スケジュール</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="<?php echo base_url(); ?>post">
+                            <i class="fa fa-comments"></i>
+                            <span>申し送り</span>
+                        </a>
+                    </li>
+
                     <?php if ($page == 'profile'){ ?><li class="active"><?php }else{ ?><li><?php }?>
                     <a href="<?php echo admin_url(); ?>profile">
                         <i class="fa fa-cog"></i>
