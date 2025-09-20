@@ -72,12 +72,18 @@ class UserController extends WixController
                 }
                 break;
             case ROLE_STAFF:
+                // Check admin session first - allow admin to access staff functions
+                $admin = $this->session->userdata('admin');
+                if (!empty($admin)) {
+                    $this->user = $admin;
+                    $this->header['user'] = $this->user;
+                    return true;
+                }
+
+                // Check staff session
                 $staff = $this->session->userdata('staff');
                 if (!empty($staff['staff_id'])) {
-                    // Exclude admin users from staff access
-                    if (isset($staff['user_type']) && $staff['user_type'] == 'admin') {
-                        return false;
-                    }
+                    // Allow admin users to access staff functions
                     $this->user = $this->staff_model->get($staff['staff_id']);
                     $this->header['user'] = $this->user;
                     return true;
@@ -95,9 +101,16 @@ class UserController extends WixController
 
     function _load_view($viewName = "", $prefix = '')
     {
-        $this->load->view($prefix . 'includes/header', $this->header);
-        $this->load->view($viewName, $this->data);
-        $this->load->view($prefix . 'includes/footer', $this->footer);
+        // 管理者の場合は管理者用のheader/footerを使用
+        if (isset($this->user['user_type']) && $this->user['user_type'] == 'admin') {
+            $this->load->view('admin/includes/header', $this->header);
+            $this->load->view($viewName, $this->data);
+            $this->load->view('admin/includes/footer', $this->footer);
+        } else {
+            $this->load->view($prefix . 'includes/header', $this->header);
+            $this->load->view($viewName, $this->data);
+            $this->load->view($prefix . 'includes/footer', $this->footer);
+        }
     }
 
     function _load_view_admin($viewName = "")

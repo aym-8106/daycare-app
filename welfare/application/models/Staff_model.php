@@ -43,6 +43,7 @@ class Staff_model extends Base_model
 
     function getList($select,$where_data, $count_flag=false,$page=10, $offset=0,$order_by='')
     {
+        // スタッフ一覧を取得
         $this->db->select('BaseTbl.staff_id, BaseTbl.company_id, BaseTbl.staff_name, BaseTbl.staff_mail_address, BaseTbl.create_date, BaseTbl.update_date, Company.company_name, Role.role, Jobtype.jobtypeId, Jobtype.jobtype, Employtype.employtypeId, Employtype.employtype');
         $this->db->from('tbl_staff as BaseTbl');
         $this->db->join('tbl_company as Company', 'Company.company_id = BaseTbl.company_id','left');
@@ -77,10 +78,47 @@ class Staff_model extends Base_model
         if(!$count_flag){
             if($page){
                 $this->db->limit($page, $offset);
-            }            
+            }
             try {
                 $query = $this->db->get();
                 $result = $query->result_array();
+
+                // 管理者データも追加
+                $this->db->select('admin_id as staff_id, 0 as company_id, admin_name as staff_name, admin_email as staff_mail_address, create_date, update_date');
+                $this->db->from('tbl_admin');
+                $this->db->where('del_flag', 0);
+
+                // 検索条件があれば管理者にも適用
+                if (is_array($where_data)) {
+                    foreach ($where_data as $key => $value) {
+                        if ($key == "searchText") {
+                            $likeCriteria = "(admin_name LIKE '%".$value."%' OR admin_email LIKE '%".$value."%')";
+                            $this->db->where($likeCriteria);
+                        }
+                    }
+                } else {
+                    if (!empty($where_data)) {
+                        $likeCriteria = "(admin_name LIKE '%".$where_data."%' OR admin_email LIKE '%".$where_data."%')";
+                        $this->db->where($likeCriteria);
+                    }
+                }
+
+                $admin_query = $this->db->get();
+                $admin_result = $admin_query->result_array();
+
+                // 管理者データを整形
+                foreach ($admin_result as &$admin) {
+                    $admin['company_name'] = '管理者';
+                    $admin['role'] = '管理者';
+                    $admin['jobtypeId'] = null;
+                    $admin['jobtype'] = '管理者';
+                    $admin['employtypeId'] = null;
+                    $admin['employtype'] = '管理者';
+                }
+
+                // スタッフと管理者を結合
+                $result = array_merge($admin_result, $result);
+
                 return $result;
             } catch (Exception $e) {
                 log_message('error', 'Database error: ' . $e->getMessage());
@@ -88,8 +126,61 @@ class Staff_model extends Base_model
                 return false;
             }
         }else{
-            return $this->db->count_all_results();
+            // カウント時は管理者も含める
+            $staff_count = $this->db->count_all_results();
+
+            $this->db->select('admin_id');
+            $this->db->from('tbl_admin');
+            $this->db->where('del_flag', 0);
+
+            // 検索条件があれば管理者にも適用
+            if (is_array($where_data)) {
+                foreach ($where_data as $key => $value) {
+                    if ($key == "searchText") {
+                        $likeCriteria = "(admin_name LIKE '%".$value."%' OR admin_email LIKE '%".$value."%')";
+                        $this->db->where($likeCriteria);
+                    }
+                }
+            } else {
+                if (!empty($where_data)) {
+                    $likeCriteria = "(admin_name LIKE '%".$where_data."%' OR admin_email LIKE '%".$where_data."%')";
+                    $this->db->where($likeCriteria);
+                }
+            }
+
+            $admin_count = $this->db->count_all_results();
+
+            return $staff_count + $admin_count;
         }
+    }
+
+    function getFromId($_id)
+    {
+        // まずスタッフテーブルを確認
+        $this->db->select('*');
+        $this->db->from($this->table);
+        $this->db->where($this->primary_key, $_id);
+        $query = $this->db->get();
+        $result = $query->row_array();
+
+        if ($result) {
+            return $result;
+        }
+
+        // スタッフが見つからない場合は管理者テーブルを確認
+        $this->db->select('admin_id as staff_id, admin_name as staff_name, admin_email as staff_mail_address, admin_password as staff_password, 0 as company_id, create_date, update_date');
+        $this->db->from('tbl_admin');
+        $this->db->where('admin_id', $_id);
+        $this->db->where('del_flag', 0);
+        $admin_query = $this->db->get();
+        $admin_result = $admin_query->row_array();
+
+        if ($admin_result) {
+            $admin_result['user_type'] = 'admin';
+            return $admin_result;
+        }
+
+        return array();
     }
 
     function get_staffList()

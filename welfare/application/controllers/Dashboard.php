@@ -11,6 +11,11 @@ class Dashboard extends UserController
     {
         parent::__construct(ROLE_STAFF);
 
+        // 管理者の場合は管理者ダッシュボードにリダイレクト
+        if (isset($this->user['user_type']) && $this->user['user_type'] == 'admin') {
+            redirect('/admin/dashboard');
+        }
+
         //チャットボット
         $this->header['page'] = 'dashboard';
         $this->header['title'] = '管理画面【企業用】';

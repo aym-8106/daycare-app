@@ -11,12 +11,26 @@ class Attendance extends UserController
     {
         parent::__construct(ROLE_STAFF);
 
+        // 管理者の場合、仮想的なスタッフIDを設定
+        if (isset($this->user['user_type']) && $this->user['user_type'] == 'admin') {
+            // 管理者の場合はstaff_idが実際にはadmin_idなので適切に設定
+            if (!isset($this->user['staff_id'])) {
+                $this->user['staff_id'] = $this->user['staff_id']; // 既にStaff_modelで設定済み
+            }
+            $this->user['staff_role'] = 1; // 管理者役割
+            $this->user['company_id'] = 0; // 管理者は全社横断
+        }
 
         //チャットボット
         $this->header['page'] = 'attendance';
-        $this->header['title'] = 'CareNavi訪問看護';
+        // 管理者の場合は管理者用のタイトルを設定
+        if (isset($this->user['user_type']) && $this->user['user_type'] == 'admin') {
+            $this->header['title'] = '管理画面【管理者用】- 出退勤';
+        } else {
+            $this->header['title'] = 'CareNavi訪問看護';
+        }
         $this->header['user'] = $this->user;
-        
+
         $this->load->model('Attendance_model', 'attendance_model');
         $this->load->model('user_model');
     }
