@@ -437,4 +437,59 @@ class Staff_model extends Base_model
         return $query->result_array();
     }
 
+    /**
+     * 事業所内で次のスタッフ番号を生成
+     * @param int $company_id 事業所ID
+     * @return string スタッフ番号（例：STAFF-001）
+     */
+    function generate_next_staff_number($company_id)
+    {
+        // 該当事業所の最大スタッフ番号を取得
+        $this->db->select('staff_number');
+        $this->db->from($this->table);
+        $this->db->where('company_id', $company_id);
+        $this->db->where('staff_number IS NOT NULL');
+        $this->db->where('del_flag', 0);
+        $this->db->order_by('staff_number', 'DESC');
+        $this->db->limit(1);
+        $query = $this->db->get();
+
+        if ($query->num_rows() > 0) {
+            $last_number = $query->row()->staff_number;
+            // STAFF-001 から 001 部分を抽出
+            $number_part = intval(substr($last_number, 6));
+            $next_number = $number_part + 1;
+        } else {
+            $next_number = 1;
+        }
+
+        return 'STAFF-' . str_pad($next_number, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * スタッフ登録時にスタッフ番号を自動生成
+     */
+    function insert_with_staff_number($data)
+    {
+        if (isset($data['company_id']) && empty($data['staff_number'])) {
+            $data['staff_number'] = $this->generate_next_staff_number($data['company_id']);
+        }
+
+        return $this->db->insert($this->table, $data);
+    }
+
+    /**
+     * 事業所のスタッフ一覧を取得（スタッフ番号順）
+     */
+    function get_staff_with_numbers($company_id)
+    {
+        $this->db->select('staff_id, staff_name, staff_number, staff_mail_address, staff_role');
+        $this->db->from($this->table);
+        $this->db->where('company_id', $company_id);
+        $this->db->where('del_flag', 0);
+        $this->db->order_by('staff_number', 'ASC');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
 }

@@ -67,20 +67,13 @@
                         <?php echo $list_cnt;?>件中（<?php echo $start_page;?>件～<?php echo $end_page;?>件）
                     </div>
 
-                    <form name="form1" id="form1" method="post">
-                        <input name="mode" id="mode" type="hidden">
-                        <input name="company_id" id="company_id" type="hidden">
-                        <input name="use_flag" id="use_flag" type="hidden">
-                    </form>
                   <table class="table table-hover">
                     <tr>
                         <th>№</th>
                         <th>事業所名</th>
-                        <th>メール</th>
-                        <th>作成日付</th>
-                        <th>更新日付</th>
-                        <th>有効期間</th>
-                        <th>承認</th>
+                        <th>事業所番号</th>
+                        <th>郵便番号</th>
+                        <th>住所</th>
                         <th class="text-center" style="width: 200px">アクション</th>
                     </tr>
                     <?php
@@ -95,23 +88,13 @@
                             <a href="<?php echo admin_url().'company/edit/'.$record['company_id']; ?>" title="">
                                 <?php echo $record['company_name'] ?></a>
                         </td>
-                        <td style="word-break: break-all"><?php echo $record['company_email'] ?></td>
-                        <td><?php echo date("Y-m-d", strtotime($record['create_date'])) ?></td>
-                        <td><?php echo date("Y-m-d", strtotime($record['update_date'])) ?></td>
-                        <td><?php echo date("Y-m-d", strtotime($record['payment_date'])) ?>
-                            <?php 
-                                if(date("Y-m-d") > date("Y-m-d", strtotime($record['payment_date']))) {
-                                    echo '<small class="label bg-red">満了</small>';
-                                } else {
-                                    echo '<small class="label bg-blue">有効</small>';
-                                }
-                            ?>
+                        <td><?php echo isset($record['company_number']) ? $record['company_number'] : '<span class="text-muted">未設定</span>'; ?></td>
+                        <td><?php echo isset($record['postal_code']) ? $record['postal_code'] : '<span class="text-muted">未設定</span>'; ?></td>
+                        <td style="max-width: 200px; word-break: break-all">
+                            <?php echo isset($record['company_address']) ? mb_substr($record['company_address'], 0, 30) . (mb_strlen($record['company_address']) > 30 ? '...' : '') : '<span class="text-muted">未設定</span>'; ?>
                         </td>
-                        <td><?php if($record['use_flag']==1) echo '承認済み'; else echo '未承認';?></td>
                         <td class="text-center">
-                            <?php if($record['use_flag']==1){?><a class="btn btn-sm btn-default" href="javascript:;" onclick="onAccept(<?php echo $record['company_id']; ?>,0);" title="拒否する">拒否</a> |
-                            <?php }else{?><a class="btn btn-sm btn-primary" href="javascript:;" onclick="onAccept(<?php echo $record['company_id']; ?>,1);" title="承認する">承認</a> |<?php }?>
-                            <!--a class="btn btn-sm btn-primary" href="<?= admin_url().'history/index/'.$record['company_id']; ?>" title="ログイン履歴"><i class="fa fa-history"></i></a-->
+                            <a class="btn btn-sm btn-warning" href="<?php echo admin_url().'company/staff/'.$record['company_id']; ?>" title="職員管理"><i class="fa fa-users"></i></a>
                             <a class="btn btn-sm btn-info" href="<?php echo admin_url().'company/edit/'.$record['company_id']; ?>" title="編集"><i class="fa fa-pencil"></i></a>
                             <a class="btn btn-sm btn-danger deleteUser" href="#" data-userid="<?php echo $record['company_id']; ?>" title="削除"><i class="fa fa-trash"></i></a>
                         </td>
@@ -132,20 +115,3 @@
     </section>
 </div>
 <script type="text/javascript" src="<?php echo base_url(); ?>assets/js/common.js" charset="utf-8"></script>
-<script type="text/javascript">
-    function onAccept(id,use_flag){
-        $('#company_id').val(id);
-        $('#use_flag').val(use_flag);
-        $('#mode').val('update');
-        $('#form1').submit();
-    }
-    // jQuery(document).ready(function(){
-    //     jQuery('ul.pagination li a').click(function (e) {
-    //         e.preventDefault();
-    //         var link = jQuery(this).get(0).href;
-    //         var value = link.substring(link.lastIndexOf('/') + 1);
-    //         jQuery("#searchList").attr("action", baseURL + "userList/" + value);
-    //         jQuery("#searchList").submit();
-    //     });
-    // });
-</script>

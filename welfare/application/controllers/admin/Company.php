@@ -24,6 +24,8 @@ class Company extends AdminController
     {
         $mode = $this->input->post('mode');
         if ($mode == 'update') {
+            // use_flag機能は削除されたため、この処理はコメントアウト
+            /*
             $use_flag = $this->input->post('use_flag');
             $id = $this->input->post('company_id');
             $data = array(
@@ -31,6 +33,7 @@ class Company extends AdminController
                 'company_id' => $id,
             );
             $this->company_model->saveSetting($data);
+            */
         }
         $this->data['search'] = $this->input->post('searchText');
 
@@ -68,36 +71,26 @@ class Company extends AdminController
             $this->data['company'] = array(
                 'company_id' => $_id,
                 'company_name' => $this->input->post('company_name'),
-                'company_email' => $this->input->post('company_email'),
-                'company_password' => $this->input->post('company_password'),
-
-                'payment_date' => $this->input->post('payment_date'),
+                'company_address' => $this->input->post('company_address'),
+                'postal_code' => $this->input->post('postal_code'),
+                'company_number' => $this->input->post('company_number'),
             );
 
-            $this->form_validation->set_rules('company_name', '企業名', 'trim|required|max_length[128]');
-            $this->form_validation->set_rules('company_email', 'メールアドレス', 'trim|required|valid_email|max_length[128]');
-            $this->form_validation->set_rules('company_password', 'パスワード', 'max_length[20]');
-            $this->form_validation->set_rules('company_password_confirm', 'パスワード（確認）', 'trim|matches[company_password]|max_length[20]');
+            $this->form_validation->set_rules('company_name', '事業所名', 'trim|required|max_length[128]');
+            $this->form_validation->set_rules('company_address', '住所', 'trim|required');
+            $this->form_validation->set_rules('postal_code', '郵便番号', 'trim|required|regex_match[/^\d{3}-\d{4}$/]');
+            $this->form_validation->set_rules('company_number', '事業所番号', 'trim|required|exact_length[10]|numeric|callback__check_company_number[' . $_id . ']');
 
             if ($this->form_validation->run() === TRUE) {
-                if ($this->_check_email($this->data['company']['company_email'], $_id)) {
-                    $this->data['company']['update_date'] = date('Y-m-d H:i:s');
-                    if (!empty($this->data['company']['company_password'])) {
-                        $this->data['company']['company_password'] = sha1($this->data['company']['company_password']);
-                    } else {
-                        unset($this->data['company']['company_password']);
-                    }
+                $this->data['company']['update_date'] = date('Y-m-d H:i:s');
 
-                    $result = $this->company_model->edit($this->data['company'], 'company_id');
-                    if ($result) {
-                        $this->session->set_flashdata('success', '正常に更新されました。');
-                        $this->session->set_flashdata('error', '');
-                    } else {
-                        $this->session->set_flashdata('success', '');
-                        $this->session->set_flashdata('error', '更新に失敗しました。');
-                    }
+                $result = $this->company_model->updateCompany($this->data['company'], $_id);
+                if ($result) {
+                    $this->session->set_flashdata('success', '正常に更新されました。');
+                    $this->session->set_flashdata('error', '');
                 } else {
-                    $this->session->set_flashdata('error', '既に登録されているメールアドレスです。');
+                    $this->session->set_flashdata('success', '');
+                    $this->session->set_flashdata('error', '更新に失敗しました。');
                 }
             } else {
             }
@@ -384,12 +377,16 @@ class Company extends AdminController
             $this->data['company'] = array(
                 'company_id' => NULL,
                 'company_name' => $this->input->post('company_name'),
+                'company_address' => $this->input->post('company_address'),
+                'company_number' => $this->input->post('company_number'),
                 'company_email' => $this->input->post('company_email'),
                 'company_password' => $this->input->post('company_password'),
                 'payment_date' => $this->input->post('payment_date'),
             );
 
-            $this->form_validation->set_rules('company_name', '企業名', 'trim|required|max_length[128]');
+            $this->form_validation->set_rules('company_name', '事業所名', 'trim|required|max_length[128]');
+            $this->form_validation->set_rules('company_address', '住所', 'trim|required');
+            $this->form_validation->set_rules('company_number', '事業所番号', 'trim|required|exact_length[10]|numeric|callback__check_company_number');
             $this->form_validation->set_rules('company_email', 'メールアドレス', 'trim|required|valid_email|max_length[128]');
             $this->form_validation->set_rules('company_password', 'パスワード', 'required|max_length[20]');
             $this->form_validation->set_rules('company_password_confirm', 'パスワード（確認）', 'trim|required|matches[company_password]|max_length[20]');
@@ -633,6 +630,88 @@ class Company extends AdminController
         }
 
         return $return;
+    }
+
+    /**
+     * 事業所番号の重複チェック
+     */
+    function _check_company_number($company_number, $company_id = 0)
+    {
+        $result = $this->company_model->checkCompanyNumberExists($company_number, $company_id);
+
+        if (!empty($result)) {
+            $this->form_validation->set_message('_check_company_number', '事業所番号が既に登録されています。');
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 事業所の職員配属管理画面
+     */
+    function staff($_id)
+    {
+        if ($_id == null) {
+            redirect('admin/company');
+        }
+
+        $company = $this->company_model->getFromId($_id);
+        if (empty($company)) {
+            redirect('admin/company');
+        }
+
+        $this->load->model('staff_model');
+
+        // 配属職員の移動処理
+        $mode = $this->input->post('mode');
+        if ($mode == 'transfer_staff') {
+            $staff_id = $this->input->post('staff_id');
+            $new_company_id = $this->input->post('new_company_id');
+
+            if (!empty($staff_id) && !empty($new_company_id)) {
+                // 新しい事業所での次のスタッフ番号を生成
+                $new_staff_number = $this->staff_model->generate_next_staff_number($new_company_id);
+
+                $update_data = array(
+                    'company_id' => $new_company_id,
+                    'staff_number' => $new_staff_number,
+                    'update_date' => date('Y-m-d H:i:s')
+                );
+
+                $result = $this->staff_model->edit($update_data, 'staff_id', $staff_id);
+                if ($result) {
+                    $this->session->set_flashdata('success', '職員の配属を変更しました。');
+                } else {
+                    $this->session->set_flashdata('error', '配属変更に失敗しました。');
+                }
+            }
+        }
+
+        // 職員の削除処理
+        if ($mode == 'remove_staff') {
+            $staff_id = $this->input->post('staff_id');
+
+            if (!empty($staff_id)) {
+                $update_data = array(
+                    'del_flag' => 1,
+                    'update_date' => date('Y-m-d H:i:s')
+                );
+
+                $result = $this->staff_model->edit($update_data, 'staff_id', $staff_id);
+                if ($result) {
+                    $this->session->set_flashdata('success', '職員を削除しました。');
+                } else {
+                    $this->session->set_flashdata('error', '職員削除に失敗しました。');
+                }
+            }
+        }
+
+        // データ取得
+        $this->data['company'] = $company;
+        $this->data['staff_list'] = $this->staff_model->get_staff_with_numbers($_id);
+        $this->data['company_list'] = $this->company_model->getList('*', array(), false);
+
+        $this->_load_view_admin("admin/company/staff");
     }
 }
 

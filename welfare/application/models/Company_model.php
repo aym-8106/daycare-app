@@ -88,7 +88,6 @@ class Company_model extends Base_model
         $this->db->select('*');
         $this->db->from($this->table);
         $this->db->where('company_wix_domain', $domain);
-        $this->db->where('use_flag',1);
         $this->db->where('del_flag',0);
         $query = $this->db->get();
         return $query->row_array();
@@ -136,7 +135,6 @@ class Company_model extends Base_model
         $this->db->from($this->table);
         $this->db->where('company_email',$data['email']);
         $this->db->where('company_password',sha1($data['password']));
-        $this->db->where("use_flag", 1);
         $this->db->where("del_flag", 0);
         return $this->db->get()->row_array();
     }
@@ -245,6 +243,34 @@ class Company_model extends Base_model
         $this->db->where('tbl_company.del_flag', 0);
         $query = $this->db->get();
         return $query->result_array();
+    }
+
+    /**
+     * 事業所番号の重複チェック
+     */
+    function checkCompanyNumberExists($company_number, $company_id = 0)
+    {
+        $this->db->select('company_id');
+        $this->db->from($this->table);
+        $this->db->where('company_number', $company_number);
+        $this->db->where('del_flag', 0);
+
+        if ($company_id > 0) {
+            $this->db->where('company_id !=', $company_id);
+        }
+
+        $query = $this->db->get();
+        return $query->result();
+    }
+
+    /**
+     * 事業所情報を更新
+     */
+    function updateCompany($data, $company_id)
+    {
+        $this->db->where('company_id', $company_id);
+        $this->db->update($this->table, $data);
+        return $this->db->affected_rows() > 0;
     }
 
 }

@@ -21,4 +21,19 @@ class Role_model extends Base_model
 
         return $result;
     }
+
+    /**
+     * スタッフ管理用の役職一覧（利用者を除外）
+     */
+    function getStaffRoles()
+    {
+        $this->db->select('*');
+        $this->db->from($this->table);
+        $this->db->where('role !=', '利用者');
+
+        $query = $this->db->get();
+        $result = $query->result_array();
+
+        return $result;
+    }
 }
