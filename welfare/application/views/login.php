@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>管理画面【企業用】</title>
     <meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' chrome-extension: https://cdnjs.cloudflare.com https://code.jquery.com; img-src 'self' data: https: chrome-extension:;">
     <link href="<?php echo base_url(); ?>assets/bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
     <link href="<?php echo base_url(); ?>assets/bower_components/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
     <link href="<?php echo base_url(); ?>assets/dist/css/AdminLTE.min.css" rel="stylesheet" type="text/css" />
@@ -18,7 +19,7 @@
 <body class="hold-transition login-page">
 <div class="login-box">
     <div class="login-logo">
-        <a href="#"><b>CareNavi訪問看護</b></a>
+        <a href="#"><b>CareNavi通所</b></a>
     </div><!-- /.login-logo -->
     <div class="login-box-body">
         <p class="login-box-msg" style="font-size: 18px;font-weight: 700;">ログイン</p>
@@ -46,7 +47,7 @@
                 <?php echo $success; ?>
             </div>
         <?php } ?>
-        <form method="post">
+        <form method="post" action="<?php echo base_url('login'); ?>">
             <!-- <div class="form-group has-feedback">
                 <select class="form-control required" id="company_id" name="company_id" onchange="javascript:getStaff();">
                     <option value="0">事業所を選択</option>
@@ -101,11 +102,6 @@
                     <input type="submit" class="btn btn-primary btn-lg btn-block btn-flat" style="border-radius: 5px;" value="ログイン" />
                 </div><!-- /.col -->
             </div>
-            <div class="row">
-                <div class="col-xs-12">
-                    <a class="btn btn-info btn-lg btn-block btn-flat" style="border-radius: 5px;" href="<?php echo base_url() ?>company/login">事業所管理者ログイン</a>
-                </div><!-- /.col -->
-            </div>
             <div class="row margin">
                 <div class="col-xs-8">
                     <div class="checkbox icheck">
@@ -123,6 +119,24 @@
 
 <script src="<?php echo base_url(); ?>assets/bower_components/jquery/dist/jquery.min.js"></script>
 <script src="<?php echo base_url(); ?>assets/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+<script>
+    // Chrome拡張機能関連のエラーを抑制
+    window.addEventListener('error', function(e) {
+        // Chrome拡張機能のエラーを無視
+        if (e.filename && e.filename.indexOf('chrome-extension://') === 0) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // リソース読み込みエラーを抑制
+    window.addEventListener('unhandledrejection', function(e) {
+        if (e.reason && e.reason.message && e.reason.message.indexOf('chrome-extension://') !== -1) {
+            e.preventDefault();
+            return false;
+        }
+    });
+</script>
 <script>
     function getStaff() {
         var id = $("#company_id").val();

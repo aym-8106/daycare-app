@@ -28,9 +28,9 @@ class CompanyController extends WixController
         $this->header['page'] = $this->uri->segment(1);
         $this->header['role'] = $role;
         if (!$this->_login_check($role)) {
-            if ($role == ROLE_ADMIN) redirect('/admin/login');
+            if ($role == ROLE_ADMIN) redirect('/login');
             else if ($role == ROLE_STAFF) redirect('/login');
-            else if ($role == ROLE_COMPANY) redirect('/company/login');
+            else if ($role == ROLE_COMPANY) redirect('/login');
         } else {
             if ($role == ROLE_ADMIN) $this->header['title'] = '管理画面【管理者用】';
             else if ($role == ROLE_STAFF) $this->header['title'] = '管理画面【企業用】';
@@ -44,7 +44,7 @@ class CompanyController extends WixController
         switch ($role) {
             case ROLE_ADMIN:
                 $this->session->unset_userdata('admin');
-                redirect('admin/login');
+                redirect('login');
                 break;
             case ROLE_STAFF:
                 $this->session->unset_userdata('staff');
@@ -52,7 +52,7 @@ class CompanyController extends WixController
                 break;
             case ROLE_COMPANY:
                 $this->session->unset_userdata('company');
-                redirect('company/login');
+                redirect('login');
                 break;
         }
 

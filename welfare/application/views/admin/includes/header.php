@@ -140,24 +140,19 @@
                         </a>
                     </li>
 
-                    <!-- 管理者用職員機能 -->
-                    <li class="header">職員機能</li>
-                    <li>
-                        <a href="<?php echo base_url(); ?>attendance">
-                            <i class="fa fa-clock-o"></i>
-                            <span>出退勤</span>
+                    <?php if ($page == 'admin_attendance'){ ?><li class="active"><?php }else{ ?><li><?php }?>
+                        <a href="<?php echo admin_url(); ?>adminattendance">
+                            <i class="fa fa-sign-in"></i>
+                            <span>出退勤打刻</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="<?php echo base_url(); ?>schedule">
-                            <i class="fa fa-calendar"></i>
-                            <span>スケジュール</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="<?php echo base_url(); ?>post">
-                            <i class="fa fa-comments"></i>
-                            <span>申し送り</span>
+
+                    <!-- 管理者用追加機能 -->
+                    <li class="header">その他管理機能</li>
+                    <?php if ($page == 'history'){ ?><li class="active"><?php }else{ ?><li><?php }?>
+                        <a href="<?php echo admin_url(); ?>history">
+                            <i class="fa fa-history"></i>
+                            <span>履歴確認</span>
                         </a>
                     </li>
 

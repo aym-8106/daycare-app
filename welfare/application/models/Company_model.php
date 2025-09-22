@@ -24,9 +24,10 @@ class Company_model extends Base_model
             }
         }else{
             if(!empty($where_data)) {
-                $likeCriteria = "(company_email  LIKE '%".$where_data."%'
-                            OR  company_name  LIKE '%".$where_data."%' )";
-                $this->db->where($likeCriteria);
+                $this->db->group_start();
+                $this->db->like('company_email', $where_data);
+                $this->db->or_like('company_name', $where_data);
+                $this->db->group_end();
             }
         }
         $this->db->where('del_flag',0);

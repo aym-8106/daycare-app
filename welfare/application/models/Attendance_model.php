@@ -20,8 +20,22 @@ class Attendance_model extends Base_model
         $this->db->where('BaseTbl.work_date', $data['today_date']);
         $query = $this->db->get();
 
-        $result = $query->result();        
+        $result = $query->result();
         return $result;
+    }
+
+    /**
+     * 管理者用の今日の出退勤データを取得
+     */
+    function get_admin_today_data($admin_as_staff_id, $today_date)
+    {
+        $this->db->select('*');
+        $this->db->from('tbl_attendance');
+        $this->db->where('staff_id', $admin_as_staff_id);
+        $this->db->where('work_date', $today_date);
+        $query = $this->db->get();
+
+        return $query->row_array();
     }
 
     function insert_working_time($user_id, $work_date, $work_time) 

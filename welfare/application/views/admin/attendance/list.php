@@ -53,7 +53,7 @@
                     <div class="box-body">
                         <div class="row">
                             <div class="col-md-12">
-                                <form method="POST" action="<?php echo admin_url('attendance/export_excel'); ?>" class="pull-right">
+                                <form method="POST" action="<?php echo base_url('attendanceexport/export'); ?>" class="pull-right">
                                     <input type="hidden" name="year" value="<?php echo $year; ?>">
                                     <input type="hidden" name="month" value="<?php echo sprintf('%02d', $month); ?>">
                                     <input type="hidden" name="company_id" value="<?php echo $company_id; ?>">
@@ -256,28 +256,55 @@ $(document).ready(function() {
         $('#edit_work_date').text(workDate);
 
         // 出退勤データを取得
-        $.post('<?php echo admin_url('attendance/get_attendance_data'); ?>', {
-            attendance_id: attendanceId
-        }, function(response) {
+        $.ajax({
+            url: '<?php echo base_url('api/get_attendance_data'); ?>',
+            method: 'POST',
+            dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: {
+                attendance_id: attendanceId
+            },
+            success: function(response) {
             console.log('Response received:', response);
             if (response.success) {
                 var data = response.data;
 
+                // フィールドをクリア
+                $('#edit_work_time').val('');
+                $('#edit_leave_time').val('');
+                $('#edit_break_time').val('');
+                $('#edit_overtime_start_time').val('');
+                $('#edit_overtime_end_time').val('');
+
                 // 時刻フィールドに値を設定
-                if (data.work_time && data.work_time !== '00:00:00') {
-                    $('#edit_work_time').val(data.work_time.substring(0, 5));
+                if (data.work_time && data.work_time !== '0000-00-00 00:00:00') {
+                    var workTime = data.work_time.split(' ')[1]; // datetime から時刻部分を抽出
+                    if (workTime && workTime !== '00:00:00') {
+                        $('#edit_work_time').val(workTime.substring(0, 5));
+                    }
                 }
-                if (data.leave_time && data.leave_time !== '00:00:00') {
-                    $('#edit_leave_time').val(data.leave_time.substring(0, 5));
+                if (data.leave_time && data.leave_time !== '0000-00-00 00:00:00') {
+                    var leaveTime = data.leave_time.split(' ')[1]; // datetime から時刻部分を抽出
+                    if (leaveTime && leaveTime !== '00:00:00') {
+                        $('#edit_leave_time').val(leaveTime.substring(0, 5));
+                    }
                 }
-                if (data.break_time) {
+                if (data.break_time !== null && data.break_time !== undefined) {
                     $('#edit_break_time').val(data.break_time);
                 }
-                if (data.overtime_start_time && data.overtime_start_time !== '00:00:00') {
-                    $('#edit_overtime_start_time').val(data.overtime_start_time.substring(0, 5));
+                if (data.overtime_start_time && data.overtime_start_time !== '0000-00-00 00:00:00') {
+                    var overtimeStart = data.overtime_start_time.split(' ')[1]; // datetime から時刻部分を抽出
+                    if (overtimeStart && overtimeStart !== '00:00:00') {
+                        $('#edit_overtime_start_time').val(overtimeStart.substring(0, 5));
+                    }
                 }
-                if (data.overtime_end_time && data.overtime_end_time !== '00:00:00') {
-                    $('#edit_overtime_end_time').val(data.overtime_end_time.substring(0, 5));
+                if (data.overtime_end_time && data.overtime_end_time !== '0000-00-00 00:00:00') {
+                    var overtimeEnd = data.overtime_end_time.split(' ')[1]; // datetime から時刻部分を抽出
+                    if (overtimeEnd && overtimeEnd !== '00:00:00') {
+                        $('#edit_overtime_end_time').val(overtimeEnd.substring(0, 5));
+                    }
                 }
 
                 // モーダルを表示
@@ -285,9 +312,11 @@ $(document).ready(function() {
             } else {
                 alert('データの取得に失敗しました: ' + response.message);
             }
-        }, 'json').fail(function(xhr, status, error) {
+        },
+        error: function(xhr, status, error) {
             console.log('AJAX Error:', xhr.responseText);
             alert('サーバーエラーが発生しました。詳細: ' + xhr.responseText);
+        }
         });
     });
 
@@ -297,19 +326,29 @@ $(document).ready(function() {
 
         var formData = $(this).serialize();
 
-        $.post('<?php echo admin_url('attendance/update_attendance'); ?>', formData, function(response) {
-            console.log('Update response:', response);
-            if (response.success) {
-                alert('出退勤データが正常に更新されました。');
-                $('#editAttendanceModal').modal('hide');
-                // ページをリロードして最新のデータを表示
-                location.reload();
-            } else {
-                alert('更新に失敗しました: ' + response.message);
+        $.ajax({
+            url: '<?php echo base_url('api/update_attendance'); ?>',
+            method: 'POST',
+            dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: formData,
+            success: function(response) {
+                console.log('Update response:', response);
+                if (response.success) {
+                    alert('出退勤データが正常に更新されました。');
+                    $('#editAttendanceModal').modal('hide');
+                    // ページをリロードして最新のデータを表示
+                    location.reload();
+                } else {
+                    alert('更新に失敗しました: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.log('Update AJAX Error:', xhr.responseText);
+                alert('サーバーエラーが発生しました。詳細: ' + xhr.responseText);
             }
-        }, 'json').fail(function(xhr, status, error) {
-            console.log('Update AJAX Error:', xhr.responseText);
-            alert('サーバーエラーが発生しました。詳細: ' + xhr.responseText);
         });
     });
 });

@@ -13,7 +13,7 @@ class Login extends UserController
         parent::__construct();
 
         $this->load->model('Staff_model', 'staff_model');
-        
+        $this->load->model('Company_model', 'company_model');
         $this->load->model('Role_model', 'role_model');
         $this->load->model('Jobtype_model', 'jobtype_model');
         $this->load->model('Employtype_model', 'employtype_model');
@@ -41,6 +41,10 @@ class Login extends UserController
 
         if ($this->form_validation->run() === TRUE) {
             $user = $this->staff_model->login($this->data);
+
+            // Debug: ログイン試行をログに記録
+            log_message('debug', 'Login attempt for email: ' . $this->data['email']);
+            log_message('debug', 'Login result: ' . (!empty($user) ? 'SUCCESS' : 'FAILED'));
 
             if (!empty($user)) {
                 // Correctly set the session data
@@ -95,12 +99,13 @@ class Login extends UserController
                 // $staffs = $this->staff_model->getList('*', array('BaseTbl.company_id' => $this->data['company_id']), false, 0);
                 // $this->data['staffs'] = $staffs;
 
+                log_message('error', 'Login failed for email: ' . $this->data['email']);
                 $this->session->set_flashdata('error', 'メールアドレスまたはパスワードが正しくありません。');
             }
 
         }
         
-        $this->data['companys'] = $this->company_model->getList('*', array('use_flag' => true), false, 0);
+        // $this->data['companys'] = $this->company_model->getList('*', array(), false, 0);
 
         $this->load->view('/login', $this->data);
     }

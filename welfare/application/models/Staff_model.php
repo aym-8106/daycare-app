@@ -53,20 +53,22 @@ class Staff_model extends Base_model
         if(is_array($where_data)){
             foreach ($where_data as $key => $value){
                 if($key == "searchText") {
-                    $likeCriteria = "(BaseTbl.staff_name  LIKE '%".$value."%'
-                                    OR  Company.company_name  LIKE '%".$value."%'
-                                    OR  BaseTbl.staff_mail_address  LIKE '%".$value."%')";
-                    $this->db->where($likeCriteria);
+                    $this->db->group_start();
+                    $this->db->like('BaseTbl.staff_name', $value);
+                    $this->db->or_like('Company.company_name', $value);
+                    $this->db->or_like('BaseTbl.staff_mail_address', $value);
+                    $this->db->group_end();
                 } else {
                     $this->db->where($key,$value);
                 }
             }
         }else{
             if(!empty($where_data)) {
-                $likeCriteria = "(BaseTbl.staff_name  LIKE '%".$where_data."%'
-                                OR  Company.company_name  LIKE '%".$where_data."%'
-                                OR  BaseTbl.staff_mail_address  LIKE '%".$where_data."%')";
-                $this->db->where($likeCriteria);
+                $this->db->group_start();
+                $this->db->like('BaseTbl.staff_name', $where_data);
+                $this->db->or_like('Company.company_name', $where_data);
+                $this->db->or_like('BaseTbl.staff_mail_address', $where_data);
+                $this->db->group_end();
             }
         }
         $this->db->where('BaseTbl.del_flag',0);
@@ -92,14 +94,18 @@ class Staff_model extends Base_model
                 if (is_array($where_data)) {
                     foreach ($where_data as $key => $value) {
                         if ($key == "searchText") {
-                            $likeCriteria = "(admin_name LIKE '%".$value."%' OR admin_email LIKE '%".$value."%')";
-                            $this->db->where($likeCriteria);
+                            $this->db->group_start();
+                            $this->db->like('admin_name', $value);
+                            $this->db->or_like('admin_email', $value);
+                            $this->db->group_end();
                         }
                     }
                 } else {
                     if (!empty($where_data)) {
-                        $likeCriteria = "(admin_name LIKE '%".$where_data."%' OR admin_email LIKE '%".$where_data."%')";
-                        $this->db->where($likeCriteria);
+                        $this->db->group_start();
+                        $this->db->like('admin_name', $where_data);
+                        $this->db->or_like('admin_email', $where_data);
+                        $this->db->group_end();
                     }
                 }
 
@@ -137,14 +143,18 @@ class Staff_model extends Base_model
             if (is_array($where_data)) {
                 foreach ($where_data as $key => $value) {
                     if ($key == "searchText") {
-                        $likeCriteria = "(admin_name LIKE '%".$value."%' OR admin_email LIKE '%".$value."%')";
-                        $this->db->where($likeCriteria);
+                        $this->db->group_start();
+                        $this->db->like('admin_name', $value);
+                        $this->db->or_like('admin_email', $value);
+                        $this->db->group_end();
                     }
                 }
             } else {
                 if (!empty($where_data)) {
-                    $likeCriteria = "(admin_name LIKE '%".$where_data."%' OR admin_email LIKE '%".$where_data."%')";
-                    $this->db->where($likeCriteria);
+                    $this->db->group_start();
+                    $this->db->like('admin_name', $where_data);
+                    $this->db->or_like('admin_email', $where_data);
+                    $this->db->group_end();
                 }
             }
 
@@ -206,16 +216,15 @@ class Staff_model extends Base_model
         $this->db->select('*');
         $this->db->from('tbl_last_login');
         if(!empty($search['searchText'])) {
-            $likeCriteria = "(sessionData  LIKE '%".$search['searchText']."%')";
-            $this->db->where($likeCriteria);
+            $this->db->like('sessionData', $search['searchText']);
         }
         if(!empty($search['fromDate'])) {
-            $likeCriteria = "DATE_FORMAT(createdDtm, '%Y-%m-%d' ) >= '".date('Y-m-d', strtotime($search['fromDate']))."'";
-            $this->db->where($likeCriteria);
+            $from_date = date('Y-m-d', strtotime($search['fromDate']));
+            $this->db->where("DATE(createdDtm) >=", $from_date);
         }
         if(!empty($search['toDate'])) {
-            $likeCriteria = "DATE_FORMAT(createdDtm, '%Y-%m-%d' ) <= '".date('Y-m-d', strtotime($search['toDate']))."'";
-            $this->db->where($likeCriteria);
+            $to_date = date('Y-m-d', strtotime($search['toDate']));
+            $this->db->where("DATE(createdDtm) <=", $to_date);
         }
         if(!empty($search['staff_id'])) {
             $this->db->where('staff_id', $search['staff_id']);
@@ -242,7 +251,6 @@ class Staff_model extends Base_model
         $this->db->select('*');
         $this->db->from($this->table);
         $this->db->where('company_wix_domain', $domain);
-        $this->db->where('use_flag',1);
         $this->db->where('del_flag',0);
         $query = $this->db->get();
         return $query->row_array();
@@ -287,16 +295,32 @@ class Staff_model extends Base_model
             return false;
         }
 
+        // Load password library
+        $this->load->library('password_lib');
+
         // First check admin table
         $this->db->select('admin_id as staff_id, 0 as company_id, admin_name as staff_name, admin_password as staff_password, "管理者" as company_name, "admin" as user_type');
         $this->db->from('tbl_admin');
         $this->db->where('admin_email', $data['email']);
-        $this->db->where('admin_password', sha1($data['staff_password']));
         $this->db->where('del_flag', 0);
 
-        $admin_result = $this->db->get()->row_array();
-        if($admin_result) {
-            return $admin_result;
+        $admin_query = $this->db->get();
+
+        if ($admin_query->num_rows() > 0) {
+            $admin_result = $admin_query->row_array();
+
+            // Verify password using new library (supports both bcrypt and sha1)
+            if ($this->password_lib->verify($data['staff_password'], $admin_result['staff_password'])) {
+
+                // If password needs rehashing, update it
+                if ($this->password_lib->needs_rehash($admin_result['staff_password'])) {
+                    $new_hash = $this->password_lib->hash($data['staff_password']);
+                    $this->db->where('admin_id', $admin_result['staff_id']);
+                    $this->db->update('tbl_admin', array('admin_password' => $new_hash));
+                }
+
+                return $admin_result;
+            }
         }
 
         // If admin not found, check staff table
@@ -304,13 +328,29 @@ class Staff_model extends Base_model
         $this->db->from('tbl_staff as BaseTbl');
         $this->db->join('tbl_company as Company', 'Company.company_id = BaseTbl.company_id','left');
         $this->db->where('BaseTbl.staff_mail_address',$data['email']);
-        $this->db->where('BaseTbl.staff_password',sha1($data['staff_password']));
-        $this->db->where("Company.use_flag", 1);
         $this->db->where("Company.del_flag", 0);
-        $this->db->where("Company.payment_date>=", date("Y-m-d H:i:s"));
         $this->db->where("BaseTbl.del_flag", 0);
 
-        return $this->db->get()->row_array();
+        $staff_query = $this->db->get();
+
+        if ($staff_query->num_rows() > 0) {
+            $staff_result = $staff_query->row_array();
+
+            // Verify password using new library (supports both bcrypt and sha1)
+            if ($this->password_lib->verify($data['staff_password'], $staff_result['staff_password'])) {
+
+                // If password needs rehashing, update it
+                if ($this->password_lib->needs_rehash($staff_result['staff_password'])) {
+                    $new_hash = $this->password_lib->hash($data['staff_password']);
+                    $this->db->where('staff_id', $staff_result['staff_id']);
+                    $this->db->update('tbl_staff', array('staff_password' => $new_hash));
+                }
+
+                return $staff_result;
+            }
+        }
+
+        return array();
     }
 
     function checkEmailExists($email,$_id=0)
@@ -371,10 +411,15 @@ class Staff_model extends Base_model
     // This function used to create new password by reset link
     function createPasswordUser($email, $password)
     {
+        // Load password library
+        $this->load->library('password_lib');
+
+        $hashed_password = $this->password_lib->hash($password);
+
         $this->db->where('staff_mail_address', $email);
-        $this->db->where('dle_flag', 0);
-        $this->db->update('tbl_staff', array('staff_password'=>sha1($password)));
-        $this->db->delete('tbl_reset_password', array('email'=>$email));
+        $this->db->where('del_flag', 0);
+        $this->db->update('tbl_staff', array('staff_password' => $hashed_password));
+        $this->db->delete('tbl_reset_password', array('email' => $email));
     }
 
     function lastLogin($loginInfo)

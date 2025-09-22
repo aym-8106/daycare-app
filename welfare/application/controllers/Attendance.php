@@ -11,14 +11,18 @@ class Attendance extends UserController
     {
         parent::__construct(ROLE_STAFF);
 
-        // 管理者の場合、仮想的なスタッフIDを設定
+        // 管理者セッションを直接チェック
+        $admin_session = $this->session->userdata('admin');
+        if (!empty($admin_session)) {
+            // 管理者は職員用出退勤機能にアクセスできません - 管理者用の出退勤管理画面にリダイレクト
+            redirect('/admin/attendance');
+            return;
+        }
+
+        // 追加チェック：user配列に管理者情報がある場合
         if (isset($this->user['user_type']) && $this->user['user_type'] == 'admin') {
-            // 管理者の場合はstaff_idが実際にはadmin_idなので適切に設定
-            if (!isset($this->user['staff_id'])) {
-                $this->user['staff_id'] = $this->user['staff_id']; // 既にStaff_modelで設定済み
-            }
-            $this->user['staff_role'] = 1; // 管理者役割
-            $this->user['company_id'] = 0; // 管理者は全社横断
+            redirect('/admin/attendance');
+            return;
         }
 
         //チャットボット

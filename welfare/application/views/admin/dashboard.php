@@ -17,8 +17,8 @@
                     <div class="box-body">
                         <div class="row">
                             <div class="col-md-4">
-                                <a href="<?php echo base_url(); ?>attendance" class="btn btn-success btn-block btn-lg">
-                                    <i class="fa fa-clock-o"></i><br>出退勤
+                                <a href="<?php echo admin_url(); ?>attendance" class="btn btn-success btn-block btn-lg">
+                                    <i class="fa fa-clock-o"></i><br>出退勤管理
                                 </a>
                             </div>
                             <div class="col-md-4">
