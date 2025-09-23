@@ -298,55 +298,33 @@ class Staff_model extends Base_model
         // Load password library
         $this->load->library('password_lib');
 
-        // First check admin table
-        $this->db->select('admin_id as staff_id, 0 as company_id, admin_name as staff_name, admin_password as staff_password, "管理者" as company_name, "admin" as user_type');
-        $this->db->from('tbl_admin');
-        $this->db->where('admin_email', $data['email']);
-        $this->db->where('del_flag', 0);
-
-        $admin_query = $this->db->get();
-
-        if ($admin_query->num_rows() > 0) {
-            $admin_result = $admin_query->row_array();
-
-            // Verify password using new library (supports both bcrypt and sha1)
-            if ($this->password_lib->verify($data['staff_password'], $admin_result['staff_password'])) {
-
-                // If password needs rehashing, update it
-                if ($this->password_lib->needs_rehash($admin_result['staff_password'])) {
-                    $new_hash = $this->password_lib->hash($data['staff_password']);
-                    $this->db->where('admin_id', $admin_result['staff_id']);
-                    $this->db->update('tbl_admin', array('admin_password' => $new_hash));
-                }
-
-                return $admin_result;
-            }
-        }
-
-        // If admin not found, check staff table
-        $this->db->select('BaseTbl.staff_id, BaseTbl.company_id, BaseTbl.staff_name, BaseTbl.staff_password, Company.company_name, "staff" as user_type');
+        // 統合されたスタッフテーブルから検索
+        $this->db->select('BaseTbl.staff_id, BaseTbl.company_id, BaseTbl.staff_name, BaseTbl.staff_mail_address as staff_email, BaseTbl.staff_password, BaseTbl.staff_role, Company.company_name');
         $this->db->from('tbl_staff as BaseTbl');
-        $this->db->join('tbl_company as Company', 'Company.company_id = BaseTbl.company_id','left');
-        $this->db->where('BaseTbl.staff_mail_address',$data['email']);
-        $this->db->where("Company.del_flag", 0);
-        $this->db->where("BaseTbl.del_flag", 0);
+        $this->db->join('tbl_company as Company', 'Company.company_id = BaseTbl.company_id', 'left');
+        $this->db->where('BaseTbl.staff_mail_address', $data['email']);
+        $this->db->where('Company.del_flag', 0);
+        $this->db->where('BaseTbl.del_flag', 0);
 
-        $staff_query = $this->db->get();
+        $query = $this->db->get();
 
-        if ($staff_query->num_rows() > 0) {
-            $staff_result = $staff_query->row_array();
+        if ($query->num_rows() > 0) {
+            $result = $query->row_array();
 
             // Verify password using new library (supports both bcrypt and sha1)
-            if ($this->password_lib->verify($data['staff_password'], $staff_result['staff_password'])) {
+            if ($this->password_lib->verify($data['staff_password'], $result['staff_password'])) {
 
                 // If password needs rehashing, update it
-                if ($this->password_lib->needs_rehash($staff_result['staff_password'])) {
+                if ($this->password_lib->needs_rehash($result['staff_password'])) {
                     $new_hash = $this->password_lib->hash($data['staff_password']);
-                    $this->db->where('staff_id', $staff_result['staff_id']);
+                    $this->db->where('staff_id', $result['staff_id']);
                     $this->db->update('tbl_staff', array('staff_password' => $new_hash));
                 }
 
-                return $staff_result;
+                // Add user_type based on staff_role
+                $result['user_type'] = ($result['staff_role'] == 1) ? 'admin' : 'staff';
+
+                return $result;
             }
         }
 
@@ -355,9 +333,9 @@ class Staff_model extends Base_model
 
     function checkEmailExists($email,$_id=0)
     {
-        $this->db->select("staff_mail_address");
+        $this->db->select("staff_email");
         $this->db->from($this->table);
-        $this->db->where("staff_mail_address", $email);
+        $this->db->where("staff_email", $email);
         $this->db->where("del_flag", 0);
         if($_id != 0){
             $this->db->where("staff_id !=", $_id);

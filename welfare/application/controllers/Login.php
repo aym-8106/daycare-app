@@ -53,39 +53,23 @@ class Login extends UserController
                 // Add a flag to indicate the user is logged in
                 $this->session->set_userdata('staff_logged_in', TRUE);
 
-                // Set role based on user type
-                if(isset($user['user_type']) && $user['user_type'] == 'admin') {
+                // Set role based on staff_role field
+                $is_admin = (isset($user['staff_role']) && $user['staff_role'] == 1);
+
+                if($is_admin) {
                     $this->session->set_userdata('staff__role', ROLE_ADMIN);
                     $this->session->set_userdata('is_admin', TRUE);
                 } else {
                     $this->session->set_userdata('staff__role', ROLE_STAFF);
                     $this->session->set_userdata('is_admin', FALSE);
                 }
-                
-                // Debug: Print the session data to verify it's being set
-                // echo "<pre>"; print_r($this->session->userdata()); echo "</pre>"; exit;
-                
+
                 // Set a success flash message
                 $this->session->set_flashdata('success', 'ログインに成功しました。');
-                
-                // $sessionData = [
-                //     'company_id' => $user['company_id'],
-                //     'staff_id' => $user['staff_id'],
-                //     'post' => $this->data,
-                // ];
-                // $loginInfo = array(
-                //     'company_id' => $user['company_id'],
-                //     "staff_id" => $user['staff_id'],
-                //     "sessionData" => json_encode($sessionData),
-                //     "machineIp" => $_SERVER['REMOTE_ADDR'],
-                //     "userAgent" => getBrowserAgent(),
-                //     "agentString" => $this->agent->agent_string(),
-                //     "platform" => $this->agent->platform());
 
-                // $this->staff_model->lastLogin($loginInfo);
                 // Role-based redirect
-                if(isset($user['user_type']) && $user['user_type'] == 'admin') {
-                    // Admin user - redirect to admin dashboard
+                if($is_admin) {
+                    // Office admin - redirect to admin dashboard
                     redirect('admin/dashboard');
                 } else {
                     // Regular staff - redirect to staff dashboard
