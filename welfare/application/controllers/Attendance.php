@@ -11,12 +11,30 @@ class Attendance extends UserController
     {
         parent::__construct(ROLE_STAFF);
 
+        // 管理者セッションを直接チェック
+        $admin_session = $this->session->userdata('admin');
+        if (!empty($admin_session)) {
+            // 管理者は職員用出退勤機能にアクセスできません - 管理者用の出退勤管理画面にリダイレクト
+            redirect('/admin/attendance');
+            return;
+        }
+
+        // 追加チェック：user配列に管理者情報がある場合
+        if (isset($this->user['user_type']) && $this->user['user_type'] == 'admin') {
+            redirect('/admin/attendance');
+            return;
+        }
 
         //チャットボット
         $this->header['page'] = 'attendance';
-        $this->header['title'] = 'CareNavi訪問看護';
+        // 管理者の場合は管理者用のタイトルを設定
+        if (isset($this->user['user_type']) && $this->user['user_type'] == 'admin') {
+            $this->header['title'] = '管理画面【管理者用】- 出退勤';
+        } else {
+            $this->header['title'] = 'CareNavi訪問看護';
+        }
         $this->header['user'] = $this->user;
-        
+
         $this->load->model('Attendance_model', 'attendance_model');
         $this->load->model('user_model');
     }

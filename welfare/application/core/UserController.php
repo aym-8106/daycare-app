@@ -26,9 +26,9 @@ class UserController extends WixController
         $this->header['role'] = $role;
         if (!$this->_login_check($role)) {
             $redirect = $this->uri->uri_string();
-            if ($role == ROLE_ADMIN) redirect('/admin/login?redirect='.$redirect);
+            if ($role == ROLE_ADMIN) redirect('/login?redirect='.$redirect);
             else if ($role == ROLE_STAFF) redirect('/login?redirect='.$redirect);
-            else if ($role == ROLL_COMPANY) redirect('/company/login?redirect='.$redirect);
+            else if ($role == ROLL_COMPANY) redirect('/login?redirect='.$redirect);
         } else {
             if ($role == ROLE_ADMIN) $this->header['title'] = '管理画面【管理者用】';
             else if ($role == ROLE_STAFF) $this->header['title'] = '管理画面【企業用】';
@@ -45,7 +45,7 @@ class UserController extends WixController
         switch ($role) {
             case ROLE_ADMIN:
                 $this->session->unset_userdata('admin');
-                redirect('admin/login');
+                redirect('login');
                 break;
             case ROLE_COMPANY:
                 $this->session->unset_userdata('company');
@@ -72,9 +72,23 @@ class UserController extends WixController
                 }
                 break;
             case ROLE_STAFF:
+                // Check staff session only - admins should not access staff functions directly
                 $staff = $this->session->userdata('staff');
                 if (!empty($staff['staff_id'])) {
+                    $this->load->model('staff_model');
                     $this->user = $this->staff_model->get($staff['staff_id']);
+                    if ($this->user && !isset($this->user['user_type'])) {
+                        // これは純粋な職員
+                        $this->header['user'] = $this->user;
+                        return true;
+                    }
+                }
+
+                // Admin session check - but don't allow direct access to staff functions
+                $admin = $this->session->userdata('admin');
+                if (!empty($admin)) {
+                    $this->user = $admin;
+                    $this->user['user_type'] = 'admin'; // 管理者であることを明確にマーク
                     $this->header['user'] = $this->user;
                     return true;
                 }
@@ -91,9 +105,16 @@ class UserController extends WixController
 
     function _load_view($viewName = "", $prefix = '')
     {
-        $this->load->view($prefix . 'includes/header', $this->header);
-        $this->load->view($viewName, $this->data);
-        $this->load->view($prefix . 'includes/footer', $this->footer);
+        // 管理者の場合は管理者用のheader/footerを使用
+        if (isset($this->user['user_type']) && $this->user['user_type'] == 'admin') {
+            $this->load->view('admin/includes/header', $this->header);
+            $this->load->view($viewName, $this->data);
+            $this->load->view('admin/includes/footer', $this->footer);
+        } else {
+            $this->load->view($prefix . 'includes/header', $this->header);
+            $this->load->view($viewName, $this->data);
+            $this->load->view($prefix . 'includes/footer', $this->footer);
+        }
     }
 
     function _load_view_admin($viewName = "")

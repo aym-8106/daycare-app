@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(php:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl:*)",
+      "Read(//c/xampp/**)",
+      "Bash(git add:*)",
+      "Bash(C:/xampp/mysql/bin/mysql.exe:*)",
+      "Bash(mysql:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

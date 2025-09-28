@@ -22,6 +22,9 @@ class Profile extends AdminController
      */
     public function index()
     {
+        // 管理者IDを取得（user_typeがadminの場合はstaff_idが実際のadmin_id）
+        $admin_id = isset($this->user['admin_id']) ? $this->user['admin_id'] : $this->user['staff_id'];
+
         $mode = $this->input->post('mode');
         if ($mode == 'save') {
             $this->form_validation->set_rules('admin_name', '管理者', 'trim|required|max_length[128]');
@@ -31,7 +34,7 @@ class Profile extends AdminController
             $this->form_validation->set_rules('new_password_confirm', '新しい パスワード（確認）', 'trim|required|matches[new_password]|max_length[128]');
 
             $this->data['admin'] = array(
-                'admin_id' => $this->user['admin_id'],
+                'admin_id' => $admin_id,
                 'admin_name' => $this->input->post('admin_name'),
                 'admin_email' => $this->input->post('admin_email'),
                 'old_password' => $this->input->post('old_password'),
@@ -39,18 +42,25 @@ class Profile extends AdminController
             );
 
             if ($this->form_validation->run() === TRUE) {
-                $old = $this->admin_model->get($this->user['admin_id']);
+                $old = $this->admin_model->get($admin_id);
                 if (!empty($old['admin_password']) && $old['admin_password'] == sha1($this->data['admin']['old_password'])) {
 
                     $this->session->set_flashdata('nomatch', '');
                     $admin = array(
-                        'admin_id' => $this->user['admin_id'],
+                        'admin_id' => $admin_id,
                         'admin_email' => $this->input->post('admin_email'),
                         'admin_name' => $this->input->post('admin_name'),
                         'admin_password' => sha1($this->input->post('new_password')),
                     );
                     $result = $this->admin_model->edit($admin);
                     if ($result) {
+                        // セッション情報も更新（管理者がstaffセッションでログインしている場合）
+                        if (isset($this->user['user_type']) && $this->user['user_type'] == 'admin') {
+                            $updated_user = $this->user;
+                            $updated_user['staff_name'] = $this->input->post('admin_name');
+                            $this->session->set_userdata('staff', $updated_user);
+                        }
+
                         $this->session->set_flashdata('success', '正常に更新されました。');
                         $this->session->set_flashdata('error', '');
                     } else {
@@ -64,7 +74,7 @@ class Profile extends AdminController
                 }
             }
         } else {
-            $this->data["admin"] = $this->admin_model->get($this->user['admin_id']);
+            $this->data["admin"] = $this->admin_model->get($admin_id);
         }
 
         $this->_load_view_admin("admin/profile");

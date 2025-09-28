@@ -28,9 +28,16 @@ class AdminController extends WixController
         $this->header['page'] = $this->uri->segment(1);
         $this->header['role'] = $role;
         if (!$this->_login_check($role)) {
-            if ($role == ROLE_ADMIN) redirect('/admin/login');
+            // AJAX要求の場合はリダイレクトではなくJSON応答を返す
+            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => '認証が必要です。']);
+                exit;
+            }
+            if ($role == ROLE_ADMIN) redirect('/login');
             else if ($role == ROLE_STAFF) redirect('/login');
-            else if ($role == ROLE_COMPANY) redirect('/company/login');
+            else if ($role == ROLE_COMPANY) redirect('/login');
         } else {
             if ($role == ROLE_ADMIN) $this->header['title'] = '管理画面【管理者用】';
             else if ($role == ROLE_STAFF) $this->header['title'] = '管理画面【企業用】';
@@ -43,20 +50,30 @@ class AdminController extends WixController
     {
         switch ($role) {
             case ROLE_ADMIN:
+                // ログアウトメッセージを設定（セッション破棄前に）
+                $this->session->set_flashdata('success', 'ログアウトしました。');
+
+                // 管理者セッションデータを全て削除
                 $this->session->unset_userdata('admin');
-                redirect('admin/login');
+                $this->session->unset_userdata('admin_logged_in');
+                $this->session->unset_userdata('admin_role');
+                $this->session->unset_userdata('staff'); // 管理者として staff セッションでログインしている場合
+                $this->session->unset_userdata('staff_logged_in');
+
+                redirect('login');
                 break;
             case ROLE_STAFF:
+                $this->session->set_flashdata('success', 'ログアウトしました。');
                 $this->session->unset_userdata('staff');
+                $this->session->unset_userdata('staff_logged_in');
                 redirect('login');
                 break;
             case ROLE_COMPANY:
+                $this->session->set_flashdata('success', 'ログアウトしました。');
                 $this->session->unset_userdata('company');
                 redirect('login');
                 break;
         }
-
-        $this->session->sess_destroy();
     }
 
     function _login_check($role = ROLE_GUEST)
@@ -64,8 +81,19 @@ class AdminController extends WixController
         if ($role == ROLE_GUEST) return true;
         switch ($role) {
             case ROLE_ADMIN:
+                // Check admin session first
                 $this->user = $this->session->userdata('admin');
                 if (!empty($this->user)) {
+                    $this->header['user'] = $this->user;
+                    return true;
+                }
+
+                // Check staff session for admin role
+                $staff = $this->session->userdata('staff');
+                if (!empty($staff) &&
+                    ((isset($staff['user_type']) && $staff['user_type'] == 'admin') ||
+                     $this->session->userdata('staff__role') == ROLE_ADMIN)) {
+                    $this->user = $staff;
                     $this->header['user'] = $this->user;
                     return true;
                 }

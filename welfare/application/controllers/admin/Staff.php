@@ -29,6 +29,8 @@ class Staff extends AdminController
     {
         $mode = $this->input->post('mode');
         if ($mode == 'update') {
+            // use_flag機能は削除されたため、この処理はコメントアウト
+            /*
             $use_flag = $this->input->post('use_flag');
             $id = $this->input->post('company_id');
             $data = array(
@@ -36,6 +38,7 @@ class Staff extends AdminController
                 'company_id' => $id,
             );
             $this->company_model->saveSetting($data);
+            */
         }
         $this->data['search'] = $this->input->post('searchText');
 
@@ -103,10 +106,10 @@ class Staff extends AdminController
         } else {
             $this->data['staff'] = $staff;
         }
-        
-        $this->data['companys'] = $this->company_model->getList('*', array('use_flag' => true), false, 0);
-        $this->data['roles'] = $this->role_model->getAll();
-        $this->data['jobtypes'] = $this->jobtype_model->getAll();
+
+        $this->data['companys'] = $this->company_model->getList('*', array(), false, 0);
+        $this->data['roles'] = $this->role_model->getStaffRoles();
+        $this->data['jobtypes'] = $this->jobtype_model->getStaffJobTypes();
         $this->data['employtypes'] = $this->employtype_model->getAll();
 
         $this->_load_view_admin("admin/staff/edit");
@@ -138,6 +141,9 @@ class Staff extends AdminController
             $this->form_validation->set_rules('staff_password_confirm', 'パスワード（確認）', 'trim|required|matches[staff_password]|max_length[20]');
 
             if ($this->form_validation->run() === TRUE) {
+                // スタッフ番号を自動生成
+                $this->data['staff']['staff_number'] = $this->staff_model->generate_next_staff_number($this->data['staff']['company_id']);
+
                 $this->data['staff']['staff_password'] = sha1($this->data['staff']['staff_password']);
                 $this->data['staff']['create_date'] = date('Y-m-d H:i:s');
                 $this->data['staff']['update_date'] = date('Y-m-d H:i:s');
@@ -158,10 +164,10 @@ class Staff extends AdminController
             }
 
         }
-        
-        $this->data['companys'] = $this->company_model->getList('*', array('use_flag' => true), false, 0);
-        $this->data['roles'] = $this->role_model->getAll();
-        $this->data['jobtypes'] = $this->jobtype_model->getAll();
+
+        $this->data['companys'] = $this->company_model->getList('*', array(), false, 0);
+        $this->data['roles'] = $this->role_model->getStaffRoles();
+        $this->data['jobtypes'] = $this->jobtype_model->getStaffJobTypes();
         $this->data['employtypes'] = $this->employtype_model->getAll();
 
         $this->_load_view_admin("admin/staff/add");

@@ -59,7 +59,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="admin_name">管理者名</label>
-                                    <input type="text" class="form-control" id="admin_name" name="admin_name" value="<?php echo set_value('admin_name', $admin['admin_name']); ?>" maxlength="128" />
+                                    <input type="text" class="form-control" id="admin_name" name="admin_name" value="<?php echo set_value('admin_name', isset($admin['admin_name']) ? $admin['admin_name'] : ''); ?>" maxlength="128" />
                                 </div>
                             </div>
                         </div>
@@ -67,7 +67,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="admin_email">メールアドレス</label>
-                                    <input type="text" class="form-control" id="admin_email" name="admin_email" value="<?php echo set_value('admin_email', $admin['admin_email']); ?>">
+                                    <input type="text" class="form-control" id="admin_email" name="admin_email" value="<?php echo set_value('admin_email', isset($admin['admin_email']) ? $admin['admin_email'] : ''); ?>">
                                 </div>
                             </div>
                         </div>

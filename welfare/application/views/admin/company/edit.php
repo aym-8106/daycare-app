@@ -54,57 +54,50 @@
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="company_name">事業所名：</label>
-                                        <input type="text" class="form-control" id="company_name" placeholder=""
+                                        <input type="text" class="form-control required" id="company_name" placeholder=""
                                                name="company_name" value="<?php echo $company['company_name']; ?>"
-                                               maxlength="128">
+                                               maxlength="128" required>
                                         <input type="hidden" value="<?php echo $company['company_id']; ?>"
                                                name="company_id" id="company_id"/>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="company_email">メールアドレス：</label>
-                                        <input type="email" class="form-control" id="company_email" placeholder=""
-                                               name="company_email" value="<?php echo $company['company_email']; ?>"
-                                               maxlength="128">
+                                        <label for="company_number">事業所番号：</label>
+                                        <input type="text" class="form-control required" id="company_number" placeholder="10桁の数字"
+                                               name="company_number" value="<?php echo isset($company['company_number']) ? $company['company_number'] : ''; ?>"
+                                               maxlength="10" pattern="[0-9]{10}" required>
+                                        <small class="text-muted">10桁の数字で入力してください</small>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="company_password">パスワード：</label>
-                                        <input type="password" class="form-control" id="company_password" placeholder=""
-                                               name="company_password" maxlength="20" autocomplete="off" value="">
+                                        <label for="postal_code">郵便番号：</label>
+                                        <input type="text" class="form-control required" id="postal_code" placeholder="000-0000"
+                                               name="postal_code" value="<?php echo isset($company['postal_code']) ? $company['postal_code'] : ''; ?>"
+                                               maxlength="8" pattern="[0-9]{3}-[0-9]{4}" required>
+                                        <small class="text-muted">ハイフン付きで入力してください（例：163-8001）</small>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-8">
                                     <div class="form-group">
-                                        <label for="company_password_confirm">パスワード（確認）：</label>
-                                        <input type="password" class="form-control" id="company_password_confirm"
-                                               placeholder="" name="company_password_confirm" maxlength="20" autocomplete="off" value="">
+                                        <label for="company_address">住所：</label>
+                                        <textarea class="form-control required" id="company_address" placeholder="事業所の住所を入力してください"
+                                                  name="company_address" rows="3" required><?php echo isset($company['company_address']) ? $company['company_address'] : ''; ?></textarea>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="payment_date">有効期間：</label>
-                                        
-                                        <input id="payment_date" type="text" name="payment_date" value="<?php echo $company['payment_date']; ?>"
-                                            class="form-control datepicker" placeholder="" autocomplete="off"/>
-                                    </div>
-                                </div>
-                            </div>
 
                         </div><!-- /.box-body -->
 
                         <div class="box-footer">
                             <input type="submit" class="btn btn-primary" value="保存"/>
+                            <a class="btn btn-info" href="<?php echo admin_url() . 'company/staff/' . $company['company_id']; ?>">職員配属管理</a>
                             <a class="btn btn-default" href="<?php echo admin_url() . 'company/' ?>">戻る</a>
-                            <!--                            <input type="reset" class="btn btn-default" value="クリアー" />-->
                         </div>
                     </form>
                 </div>
@@ -114,14 +107,32 @@
 </div>
 
 <script src="<?php echo base_url(); ?>assets/js/common.js" type="text/javascript"></script>
-<script src="<?php echo base_url(); ?>assets/bower_components/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
-<script src="<?php echo base_url(); ?>assets/bower_components/bootstrap-datepicker/dist/js/bootstrap-datepicker.ja.min.js"></script>
 <script type="text/javascript">
     jQuery(document).ready(function () {
-        jQuery('.datepicker').datepicker({
-            language: "ja",
-            autoclose: true,
-            format: "yyyy-mm-dd"
+        // 郵便番号入力時の住所自動補完機能
+        $('#postal_code').on('blur', function() {
+            var postal_code = $(this).val();
+            if (postal_code.match(/^\d{3}-\d{4}$/)) {
+                // zipcloudAPIを使用して住所を取得
+                $.ajax({
+                    url: 'https://zipcloud.ibsnet.co.jp/api/search',
+                    type: 'GET',
+                    dataType: 'jsonp',
+                    data: {
+                        zipcode: postal_code
+                    },
+                    success: function(response) {
+                        if (response.results && response.results.length > 0) {
+                            var result = response.results[0];
+                            var address = result.address1 + result.address2 + result.address3;
+                            $('#company_address').val(address);
+                        }
+                    },
+                    error: function() {
+                        console.log('住所の取得に失敗しました');
+                    }
+                });
+            }
         });
     });
 

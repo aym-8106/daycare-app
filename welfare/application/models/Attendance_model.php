@@ -20,8 +20,22 @@ class Attendance_model extends Base_model
         $this->db->where('BaseTbl.work_date', $data['today_date']);
         $query = $this->db->get();
 
-        $result = $query->result();        
+        $result = $query->result();
         return $result;
+    }
+
+    /**
+     * 管理者用の今日の出退勤データを取得
+     */
+    function get_admin_today_data($admin_as_staff_id, $today_date)
+    {
+        $this->db->select('*');
+        $this->db->from('tbl_attendance');
+        $this->db->where('staff_id', $admin_as_staff_id);
+        $this->db->where('work_date', $today_date);
+        $query = $this->db->get();
+
+        return $query->row_array();
     }
 
     function insert_working_time($user_id, $work_date, $work_time) 
@@ -196,17 +210,6 @@ class Attendance_model extends Base_model
         return $query->result_array();
     }
     
-    public function update_attendance_record($data)
-    {
-        $this->db->where('attendance_id', $data['attendance_id']);
-        return $this->db->update('tbl_attendance', [
-            'work_time' => $data['work_time'],
-            'leave_time' => $data['leave_time'],
-            'break_time' => $data['break_time'] * 60, // convert minutes to seconds
-            'overtime_start_time' => $data['overtime_start_time'],
-            'overtime_end_time' => $data['overtime_end_time']
-        ]);
-    }
 
     function get_company_staff($company_id) {
         $this->db->select('staff_id,staff_name');
@@ -413,5 +416,112 @@ class Attendance_model extends Base_model
         }
 
         return $anomalies;
+    }
+
+    /**
+     * 出退勤データの編集（ログ付き）
+     */
+    public function update_attendance_with_log($attendance_id, $new_data, $edited_by, $edit_reason = '')
+    {
+        // 現在のデータを取得
+        $this->db->where('attendance_id', $attendance_id);
+        $current_data = $this->db->get($this->table)->row_array();
+
+        if (!$current_data) {
+            return false;
+        }
+
+        // 変更されたフィールドを特定してログに記録
+        $log_entries = [];
+        $trackable_fields = [
+            'work_time' => '出勤時間',
+            'leave_time' => '退勤時間',
+            'break_time' => '休憩時間',
+            'overtime_start_time' => '残業開始時間',
+            'overtime_end_time' => '残業終了時間'
+        ];
+
+        foreach ($trackable_fields as $field => $field_name) {
+            if (isset($new_data[$field]) && $new_data[$field] != $current_data[$field]) {
+                $log_entries[] = [
+                    'attendance_id' => $attendance_id,
+                    'staff_id' => $current_data['staff_id'],
+                    'work_date' => $current_data['work_date'],
+                    'field_name' => $field_name,
+                    'old_value' => $current_data[$field],
+                    'new_value' => $new_data[$field],
+                    'edited_by' => $edited_by,
+                    'edit_reason' => $edit_reason,
+                    'edited_at' => date('Y-m-d H:i:s')
+                ];
+            }
+        }
+
+        // トランザクション開始
+        $this->db->trans_start();
+
+        // 出退勤データを更新
+        $this->db->where('attendance_id', $attendance_id);
+        $this->db->update($this->table, $new_data);
+
+        // ログを挿入
+        if (!empty($log_entries)) {
+            $this->db->insert_batch('tbl_attendance_edit_log', $log_entries);
+        }
+
+        // トランザクション終了
+        $this->db->trans_complete();
+
+        return $this->db->trans_status();
+    }
+
+    /**
+     * 出退勤編集ログの取得
+     */
+    public function get_edit_logs($attendance_id = null, $staff_id = null, $start_date = null, $end_date = null)
+    {
+        $this->db->select('
+            log.*,
+            staff.staff_name
+        ');
+        $this->db->from('tbl_attendance_edit_log log');
+        $this->db->join('tbl_staff staff', 'staff.staff_id = log.staff_id', 'left');
+
+        if ($attendance_id) {
+            $this->db->where('log.attendance_id', $attendance_id);
+        }
+        if ($staff_id) {
+            $this->db->where('log.staff_id', $staff_id);
+        }
+        if ($start_date) {
+            $this->db->where('log.work_date >=', $start_date);
+        }
+        if ($end_date) {
+            $this->db->where('log.work_date <=', $end_date);
+        }
+
+        $this->db->order_by('log.edited_at', 'DESC');
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
+    /**
+     * 特定の出退勤レコードの詳細情報を取得（編集用）
+     */
+    public function get_attendance_for_edit($attendance_id)
+    {
+        $this->db->select('
+            att.*,
+            staff.staff_name,
+            staff.staff_number,
+            company.company_name
+        ');
+        $this->db->from($this->table . ' att');
+        $this->db->join('tbl_staff staff', 'staff.staff_id = att.staff_id', 'left');
+        $this->db->join('tbl_company company', 'company.company_id = staff.company_id', 'left');
+        $this->db->where('att.attendance_id', $attendance_id);
+
+        $query = $this->db->get();
+        return $query->row_array();
     }
 }

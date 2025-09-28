@@ -47,28 +47,86 @@ class Attendance extends AdminController
 
     public function update_attendance()
     {
-        $attendance_id = $this->input->post('attendance_id');
-        $staff_id = $this->input->post('staff_id');
-        $work_date = $this->input->post('work_date');
-        $work_time = $this->input->post('work_time');
-        $leave_time = $this->input->post('leave_time');
-        $break_time = $this->input->post('break_time');
-        $overtime_start_time = $this->input->post('overtime_start_time');
-        $overtime_end_time = $this->input->post('overtime_end_time');
+        try {
+            $attendance_id = $this->input->post('attendance_id');
+            $work_time = $this->input->post('work_time');
+            $leave_time = $this->input->post('leave_time');
+            $break_time = $this->input->post('break_time');
+            $overtime_start_time = $this->input->post('overtime_start_time');
+            $overtime_end_time = $this->input->post('overtime_end_time');
 
-        // Sample: update attendance
-        $success = $this->attendance_model->update_attendance_record([
-            'attendance_id' => $attendance_id,
-            'staff_id' => $staff_id,
-            'work_date' => $work_date,
-            'work_time' => $work_time,
-            'leave_time' => $leave_time,
-            'break_time' => $break_time,
-            'overtime_start_time' => $overtime_start_time,
-            'overtime_end_time' => $overtime_end_time
-        ]);
+            if (!$attendance_id) {
+                echo json_encode(['success' => false, 'message' => 'attendance_idが指定されていません。']);
+                return;
+            }
 
-        echo json_encode(['success' => $success]);
+            // 編集するデータを準備
+            $update_data = array();
+            if (!empty($work_time)) $update_data['work_time'] = $work_time . ':00';
+            if (!empty($leave_time)) $update_data['leave_time'] = $leave_time . ':00';
+            if (isset($break_time) && $break_time !== '') $update_data['break_time'] = $break_time;
+            if (!empty($overtime_start_time)) $update_data['overtime_start_time'] = $overtime_start_time . ':00';
+            if (!empty($overtime_end_time)) $update_data['overtime_end_time'] = $overtime_end_time . ':00';
+
+            if (empty($update_data)) {
+                echo json_encode(['success' => false, 'message' => '更新するデータがありません。']);
+                return;
+            }
+
+            // 基本的な更新処理
+            $this->db->where('attendance_id', $attendance_id);
+            $success = $this->db->update('tbl_attendance', $update_data);
+
+            if ($success) {
+                echo json_encode(['success' => true, 'message' => '出退勤データが正常に更新されました。']);
+            } else {
+                echo json_encode(['success' => false, 'message' => '更新に失敗しました。']);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'エラー: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * 出退勤編集モーダル用のデータ取得
+     */
+    public function get_attendance_data()
+    {
+        try {
+            $attendance_id = $this->input->post('attendance_id');
+
+            if (!$attendance_id) {
+                echo json_encode(['success' => false, 'message' => 'attendance_idが指定されていません。']);
+                return;
+            }
+
+            // 基本的なクエリで出退勤データを取得
+            $this->db->where('attendance_id', $attendance_id);
+            $attendance_data = $this->db->get('tbl_attendance')->row_array();
+
+            if ($attendance_data) {
+                echo json_encode(['success' => true, 'data' => $attendance_data]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'データが見つかりませんでした。']);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'エラー: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * 編集ログの表示
+     */
+    public function view_edit_logs()
+    {
+        $attendance_id = $this->input->get('attendance_id');
+        $staff_id = $this->input->get('staff_id');
+        $start_date = $this->input->get('start_date');
+        $end_date = $this->input->get('end_date');
+
+        $this->data['edit_logs'] = $this->attendance_model->get_edit_logs($attendance_id, $staff_id, $start_date, $end_date);
+
+        $this->_load_view_admin("admin/attendance/edit_logs");
     }
 
     public function export_excel()

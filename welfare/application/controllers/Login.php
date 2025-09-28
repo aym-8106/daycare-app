@@ -13,7 +13,7 @@ class Login extends UserController
         parent::__construct();
 
         $this->load->model('Staff_model', 'staff_model');
-        
+        $this->load->model('Company_model', 'company_model');
         $this->load->model('Role_model', 'role_model');
         $this->load->model('Jobtype_model', 'jobtype_model');
         $this->load->model('Employtype_model', 'employtype_model');
@@ -42,52 +42,54 @@ class Login extends UserController
         if ($this->form_validation->run() === TRUE) {
             $user = $this->staff_model->login($this->data);
 
+            // Debug: ログイン試行をログに記録
+            log_message('debug', 'Login attempt for email: ' . $this->data['email']);
+            log_message('debug', 'Login result: ' . (!empty($user) ? 'SUCCESS' : 'FAILED'));
+
             if (!empty($user)) {
                 // Correctly set the session data
                 $this->session->set_userdata('staff', $user);
-                
+
                 // Add a flag to indicate the user is logged in
                 $this->session->set_userdata('staff_logged_in', TRUE);
-                
-                // Optionally set the user's role
-                $this->session->set_userdata('staff__role', ROLE_STAFF);
-                
-                // Debug: Print the session data to verify it's being set
-                // echo "<pre>"; print_r($this->session->userdata()); echo "</pre>"; exit;
-                
+
+                // Set role based on staff_role field
+                $is_admin = (isset($user['staff_role']) && $user['staff_role'] == 1);
+
+                if($is_admin) {
+                    $this->session->set_userdata('staff__role', ROLE_ADMIN);
+                    $this->session->set_userdata('is_admin', TRUE);
+                } else {
+                    $this->session->set_userdata('staff__role', ROLE_STAFF);
+                    $this->session->set_userdata('is_admin', FALSE);
+                }
+
                 // Set a success flash message
                 $this->session->set_flashdata('success', 'ログインに成功しました。');
-                
-                // $sessionData = [
-                //     'company_id' => $user['company_id'],
-                //     'staff_id' => $user['staff_id'],
-                //     'post' => $this->data,
-                // ];
-                // $loginInfo = array(
-                //     'company_id' => $user['company_id'],
-                //     "staff_id" => $user['staff_id'],
-                //     "sessionData" => json_encode($sessionData),
-                //     "machineIp" => $_SERVER['REMOTE_ADDR'],
-                //     "userAgent" => getBrowserAgent(),
-                //     "agentString" => $this->agent->agent_string(),
-                //     "platform" => $this->agent->platform());
 
-                // $this->staff_model->lastLogin($loginInfo);
-                $redirect = $this->input->get("redirect");
-                if(!empty($redirect)) {
-                    redirect('/'.$redirect);
+                // Role-based redirect
+                if($is_admin) {
+                    // Office admin - redirect to admin dashboard
+                    redirect('admin/dashboard');
+                } else {
+                    // Regular staff - redirect to staff dashboard
+                    $redirect = $this->input->get("redirect");
+                    if(!empty($redirect)) {
+                        redirect($redirect);
+                    }
+                    redirect('dashboard');
                 }
-                redirect('/dashboard');
             } else {
                 // $staffs = $this->staff_model->getList('*', array('BaseTbl.company_id' => $this->data['company_id']), false, 0);
                 // $this->data['staffs'] = $staffs;
 
+                log_message('error', 'Login failed for email: ' . $this->data['email']);
                 $this->session->set_flashdata('error', 'メールアドレスまたはパスワードが正しくありません。');
             }
 
         }
         
-        $this->data['companys'] = $this->company_model->getList('*', array('use_flag' => true), false, 0);
+        // $this->data['companys'] = $this->company_model->getList('*', array(), false, 0);
 
         $this->load->view('/login', $this->data);
     }

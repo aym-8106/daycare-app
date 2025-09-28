@@ -1,258 +1,355 @@
 <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
     <section class="content-header">
-        <h1>出退勤一覧ページ</h1>
+        <h1>
+            <i class="fa fa-calendar"></i> 出退勤管理
+            <small>全スタッフの出退勤一覧</small>
+        </h1>
     </section>
+
     <section class="content">
-        <?php
-        $prev_year = $year;
-        $prev_month = $month - 1;
-        if ($prev_month < 1) {
-            $prev_month = 12;
-            $prev_year--;
-        }
-
-        $next_year = $year;
-        $next_month = $month + 1;
-        if ($next_month > 12) {
-            $next_month = 1;
-            $next_year++;
-        }
-        ?>
-        <div class="box-body">
-            <div class="col-lg-12 col-xs-12">
-                <form action="<?php echo base_url() ?>admin/attendance/index" method="POST" id="form1" name="form1" class="form-horizontal">
-                    <div class="form-group text-center" style="display: flex; align-items: right; gap: 1rem; justify-content: right;">
-                        <button type="button" id="excelExportButton" class="btn btn-primary">Excel出力</button>
-                    </div>
-                    <div class="form-group text-center" style="display: flex; align-items: center; gap: 1rem; justify-content: center;">
-                        <a href="<?php echo base_url() ?>admin/attendance/index?year=<?php echo $prev_year ?>&month=<?php echo $prev_month ?>&company_id=<?php echo $company_id ?>" class="btn btn-default btn-sm month-btn prev-month">
-                            <i class="fa fa-chevron-left"></i>
-                        </a>
-                        <select class="form-control" style="width: auto;" name="company_id" id="company_id" onchange="location.href='<?php echo base_url() ?>admin/attendance/index?year=<?php echo $year ?>&month=<?php echo $month ?>&company_id=' + this.value;">
-                            <?php foreach ($company_list as $company): ?>
-                                <option value="<?php echo $company['company_id'] ?>" <?php echo ($company['company_id'] == $company_id) ? 'selected' : '' ?>>
-                                    <?php echo $company['company_name'] ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <?php echo ($year . '年 ' . $month . '月'); ?>
-                        <a href="<?php echo base_url() ?>admin/attendance/index?year=<?php echo $next_year ?>&month=<?php echo $next_month ?>&company_id=<?php echo $company_id ?>" class="btn btn-default btn-sm month-btn next-month">
-                            <i class="fa fa-chevron-right"></i>
-                        </a>
-                    </div>
-                    <div class="form-group">
-                        <div class="box-body table-responsive no-padding" style="overflow: auto;">
-                            <?php
-                            $attendance_by_day = [];
-                            $staff_list = [];
-
-                            foreach ($month_attendance_data as $record) {
-                                $day = (int)$record['work_date'];
-                                $staff_id = $record['staff_id'];
-                                $attendance_by_day[$day][$staff_id] = $record;
-
-                                if (!isset($staff_list[$staff_id])) {
-                                    $staff_list[$staff_id] = $record['staff_name'];
-                                }
-                            }
-                            if (!empty($staff_list)) {
-                            ?>
-                                <table class="table table-hover table-bordered table-striped sticky-table">
-                                    <thead>
-                                        <tr>
-                                            <th class="sticky-col">日付</th>
-                                            <?php foreach ($staff_list as $staff_name): ?>
-                                                <th><?php echo htmlspecialchars($staff_name, ENT_QUOTES, 'UTF-8'); ?></th>
-                                            <?php endforeach; ?>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php for ($day = 1; $day <= $days; $day++): ?>
-                                            <tr>
-                                                <td class="sticky-col"><?php echo $day; ?>日</td>
-                                                <?php foreach ($staff_list as $staff_id => $staff_name): ?>
-                                                    <?php if (isset($attendance_by_day[$day][$staff_id])):
-                                                    $data = $attendance_by_day[$day][$staff_id]; ?>
-                                                        <td
-                                                            data-toggle="modal"
-                                                            data-target="#editAttendanceModal"
-                                                            data-day="<?php echo $day; ?>"
-                                                            data-attendance-id="<?php echo $data['attendance_id']; ?>"
-                                                            data-staff-id="<?php echo $staff_id; ?>"
-                                                            data-work-time="<?php echo $data['work_time']; ?>"
-                                                            data-leave-time="<?php echo $data['leave_time']; ?>"
-                                                            data-break-time="<?php echo $data['total_break_time']; ?>"
-                                                            data-overtime-start="<?php echo $data['overtime_start_time']; ?>"
-                                                            data-overtime-end="<?php echo $data['overtime_end_time']; ?>"
-                                                            class="attendance-cell"
-                                                        >
-                                                            出勤: <?php echo $data['work_time']; ?><br>
-                                                            退勤: <?php echo $data['leave_time']; ?><br>
-                                                            休憩:
-                                                            <?php echo ($data['total_break_time'] < 60) ? '1分未満' : floor($data['total_break_time'] / 60) . '分'; ?><br>
-                                                            残業: <?php echo $data['overtime_start_time'] . '～' . $data['overtime_end_time']; ?>
-                                                        </td>
-                                                    <?php else: ?>
-                                                        <td></td>
-                                                    <?php endif; ?>
-                                                <?php endforeach; ?>
-                                            </tr>
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="box">
+                    <div class="box-header">
+                        <h3 class="box-title">出退勤一覧 - <?php echo $year; ?>年<?php echo $month; ?>月</h3>
+                        <div class="box-tools">
+                            <form method="GET" class="form-inline">
+                                <div class="form-group">
+                                    <label>事業所:</label>
+                                    <select name="company_id" class="form-control input-sm" onchange="this.form.submit()">
+                                        <?php foreach($company_list as $company): ?>
+                                            <option value="<?php echo $company['company_id']; ?>"
+                                                <?php echo ($company['company_id'] == $company_id) ? 'selected' : ''; ?>>
+                                                <?php echo $company['company_name']; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>年:</label>
+                                    <select name="year" class="form-control input-sm" onchange="this.form.submit()">
+                                        <?php for($y = date('Y') - 2; $y <= date('Y') + 1; $y++): ?>
+                                            <option value="<?php echo $y; ?>" <?php echo ($y == $year) ? 'selected' : ''; ?>>
+                                                <?php echo $y; ?>年
+                                            </option>
                                         <?php endfor; ?>
-                                    </tbody>
-                                </table>
-                            <?php } ?>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>月:</label>
+                                    <select name="month" class="form-control input-sm" onchange="this.form.submit()">
+                                        <?php for($m = 1; $m <= 12; $m++): ?>
+                                            <option value="<?php echo $m; ?>" <?php echo ($m == $month) ? 'selected' : ''; ?>>
+                                                <?php echo $m; ?>月
+                                            </option>
+                                        <?php endfor; ?>
+                                    </select>
+                                </div>
+                            </form>
                         </div>
                     </div>
-                </form>
+
+                    <div class="box-body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <form method="POST" action="<?php echo base_url('attendanceexport/export'); ?>" class="pull-right">
+                                    <input type="hidden" name="year" value="<?php echo $year; ?>">
+                                    <input type="hidden" name="month" value="<?php echo sprintf('%02d', $month); ?>">
+                                    <input type="hidden" name="company_id" value="<?php echo $company_id; ?>">
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fa fa-download"></i> Excel出力
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive" style="overflow-x: auto; white-space: nowrap;">
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th style="position: sticky; left: 0; background-color: #f4f4f4; z-index: 10;">日付</th>
+                                        <?php
+                                        // スタッフ一覧を取得
+                                        $staff_list = array();
+                                        foreach($month_attendance_data as $record) {
+                                            if (!isset($staff_list[$record['staff_id']])) {
+                                                $staff_list[$record['staff_id']] = $record['staff_name'];
+                                            }
+                                        }
+
+                                        // ヘッダーにスタッフ名を表示
+                                        foreach($staff_list as $staff_id => $staff_name): ?>
+                                            <th style="min-width: 200px;"><?php echo $staff_name; ?></th>
+                                        <?php endforeach; ?>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    // 日付ごとのデータを整理
+                                    $attendance_by_day = array();
+                                    foreach($month_attendance_data as $record) {
+                                        $day = (int)$record['work_date'];
+                                        $staff_id = $record['staff_id'];
+                                        $attendance_by_day[$day][$staff_id] = $record;
+                                    }
+
+                                    // 各日の行を表示
+                                    for($day = 1; $day <= $days; $day++): ?>
+                                        <tr>
+                                            <td style="position: sticky; left: 0; background-color: #f9f9f9; z-index: 10;">
+                                                <strong><?php echo $day; ?>日</strong>
+                                            </td>
+                                            <?php foreach($staff_list as $staff_id => $staff_name): ?>
+                                                <td style="min-width: 200px; font-size: 12px;">
+                                                    <?php if(isset($attendance_by_day[$day][$staff_id])):
+                                                        $d = $attendance_by_day[$day][$staff_id]; ?>
+                                                        <div class="attendance-info">
+                                                            <strong>出勤:</strong> <?php echo date('H:i', strtotime($d['work_time'])); ?><br>
+                                                            <strong>退勤:</strong> <?php echo date('H:i', strtotime($d['leave_time'])); ?><br>
+                                                            <strong>休憩:</strong>
+                                                            <?php
+                                                            if ($d['total_break_time'] < 60) {
+                                                                echo '1分未満';
+                                                            } else {
+                                                                echo floor($d['total_break_time'] / 60) . '分';
+                                                            }
+                                                            ?><br>
+                                                            <?php if(!empty($d['overtime_start_time']) && !empty($d['overtime_end_time'])): ?>
+                                                                <strong>残業:</strong> <?php echo date('H:i', strtotime($d['overtime_start_time'])); ?>～<?php echo date('H:i', strtotime($d['overtime_end_time'])); ?>
+                                                            <?php endif; ?>
+                                                            <div class="edit-buttons" style="margin-top: 5px;">
+                                                                <button class="btn btn-xs btn-warning edit-attendance-btn"
+                                                                        data-attendance-id="<?php echo $d['attendance_id']; ?>"
+                                                                        data-staff-name="<?php echo $d['staff_name']; ?>"
+                                                                        data-work-date="<?php echo $year . '-' . sprintf('%02d', $month) . '-' . sprintf('%02d', $day); ?>">
+                                                                    <i class="fa fa-edit"></i> 編集
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">-</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            <?php endforeach; ?>
+                                        </tr>
+                                    <?php endfor; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 </div>
 
+<!-- 出退勤編集モーダル -->
+<div class="modal fade" id="editAttendanceModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="editAttendanceForm">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <h4 class="modal-title">出退勤編集</h4>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit_attendance_id" name="attendance_id">
 
-<div class="modal fade" id="editAttendanceModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <form id="attendanceEditForm">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="editModalLabel">勤怠データを編集</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="閉じる">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="attendance_id" id="modalAttendanceId">
-          <input type="hidden" name="staff_id" id="modalStaffId">
-          <input type="hidden" name="work_date" id="modalWorkDate">
+                    <div class="form-group">
+                        <label><strong>スタッフ名:</strong></label>
+                        <span id="edit_staff_name" class="form-control-static"></span>
+                    </div>
 
-          <div class="mb-3">
-            <label class="form-label">出勤時間</label>
-            <input type="time" class="form-control" name="work_time" id="modalWorkTime">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">退勤時間</label>
-            <input type="time" class="form-control" name="leave_time" id="modalLeaveTime">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">休憩時間（分）</label>
-            <input type="number" class="form-control" name="break_time" id="modalBreakTime">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">残業開始</label>
-            <input type="time" class="form-control" name="overtime_start_time" id="modalOvertimeStart">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">残業終了</label>
-            <input type="time" class="form-control" name="overtime_end_time" id="modalOvertimeEnd">
-          </div>
+                    <div class="form-group">
+                        <label><strong>勤務日:</strong></label>
+                        <span id="edit_work_date" class="form-control-static"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_work_time">出勤時間:</label>
+                                <input type="time" class="form-control" id="edit_work_time" name="work_time">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_leave_time">退勤時間:</label>
+                                <input type="time" class="form-control" id="edit_leave_time" name="leave_time">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_break_time">休憩時間（分）:</label>
+                                <input type="number" class="form-control" id="edit_break_time" name="break_time" min="0" max="600">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_overtime_start_time">残業開始時間:</label>
+                                <input type="time" class="form-control" id="edit_overtime_start_time" name="overtime_start_time">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="edit_overtime_end_time">残業終了時間:</label>
+                                <input type="time" class="form-control" id="edit_overtime_end_time" name="overtime_end_time">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_reason">編集理由:</label>
+                        <textarea class="form-control" id="edit_reason" name="edit_reason" rows="3" placeholder="編集理由を入力してください"></textarea>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <i class="fa fa-warning"></i> この編集操作はログとして記録されます。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
         </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">保存</button>
-        </div>
-      </div>
-    </form>
-  </div>
+    </div>
 </div>
 
-
-
+<style>
+.attendance-info {
+    font-size: 11px;
+    line-height: 1.3;
+}
+.table th, .table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    vertical-align: top;
+}
+.table-responsive {
+    border: 1px solid #ddd;
+}
+.edit-buttons {
+    text-align: center;
+}
+</style>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script type="text/javascript" src="<?php echo base_url(); ?>assets/bower_components/bootstrap-datetimepicker/js/moment-with-locales.min.js"></script>
-<script type="text/javascript" src="<?php echo base_url(); ?>assets/bower_components/bootstrap-datetimepicker/js/bootstrap-datetimepicker.min.js"></script>
-<link rel="stylesheet" href="<?php echo base_url(); ?>assets/bower_components/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css" />
+<script>
+$(document).ready(function() {
+    // 編集ボタンクリック時
+    $('.edit-attendance-btn').click(function() {
+        var attendanceId = $(this).data('attendance-id');
+        var staffName = $(this).data('staff-name');
+        var workDate = $(this).data('work-date');
 
-<script type="text/javascript">
-    $(function() {
-        $('.datepicker').datetimepicker({
-            locale: 'ja',
-            format: 'HH:mm',
+        // モーダルに基本情報を設定
+        $('#edit_attendance_id').val(attendanceId);
+        $('#edit_staff_name').text(staffName);
+        $('#edit_work_date').text(workDate);
+
+        // 出退勤データを取得
+        $.ajax({
+            url: '<?php echo base_url('api/get_attendance_data'); ?>',
+            method: 'POST',
+            dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            data: {
+                attendance_id: attendanceId
+            },
+            success: function(response) {
+            console.log('Response received:', response);
+            if (response.success) {
+                var data = response.data;
+
+                // フィールドをクリア
+                $('#edit_work_time').val('');
+                $('#edit_leave_time').val('');
+                $('#edit_break_time').val('');
+                $('#edit_overtime_start_time').val('');
+                $('#edit_overtime_end_time').val('');
+
+                // 時刻フィールドに値を設定
+                if (data.work_time && data.work_time !== '0000-00-00 00:00:00') {
+                    var workTime = data.work_time.split(' ')[1]; // datetime から時刻部分を抽出
+                    if (workTime && workTime !== '00:00:00') {
+                        $('#edit_work_time').val(workTime.substring(0, 5));
+                    }
+                }
+                if (data.leave_time && data.leave_time !== '0000-00-00 00:00:00') {
+                    var leaveTime = data.leave_time.split(' ')[1]; // datetime から時刻部分を抽出
+                    if (leaveTime && leaveTime !== '00:00:00') {
+                        $('#edit_leave_time').val(leaveTime.substring(0, 5));
+                    }
+                }
+                if (data.break_time !== null && data.break_time !== undefined) {
+                    $('#edit_break_time').val(data.break_time);
+                }
+                if (data.overtime_start_time && data.overtime_start_time !== '0000-00-00 00:00:00') {
+                    var overtimeStart = data.overtime_start_time.split(' ')[1]; // datetime から時刻部分を抽出
+                    if (overtimeStart && overtimeStart !== '00:00:00') {
+                        $('#edit_overtime_start_time').val(overtimeStart.substring(0, 5));
+                    }
+                }
+                if (data.overtime_end_time && data.overtime_end_time !== '0000-00-00 00:00:00') {
+                    var overtimeEnd = data.overtime_end_time.split(' ')[1]; // datetime から時刻部分を抽出
+                    if (overtimeEnd && overtimeEnd !== '00:00:00') {
+                        $('#edit_overtime_end_time').val(overtimeEnd.substring(0, 5));
+                    }
+                }
+
+                // モーダルを表示
+                $('#editAttendanceModal').modal('show');
+            } else {
+                alert('データの取得に失敗しました: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.log('AJAX Error:', xhr.responseText);
+            alert('サーバーエラーが発生しました。詳細: ' + xhr.responseText);
+        }
         });
     });
-</script>
 
-<script>
-$(document).ready(function () {
-    $('#editAttendanceModal').on('show.bs.modal', function (event) {
-        var button = $(event.relatedTarget); // jQuery object
-        $('#modalAttendanceId').val(button.data('attendance-id'));
-        $('#modalStaffId').val(button.data('staff-id'));
-        $('#modalWorkDate').val(button.data('day'));
-        $('#modalWorkTime').val(button.data('work-time'));
-        $('#modalLeaveTime').val(button.data('leave-time'));
-        const breakSeconds = parseInt(button.data('break-time') || 0, 10);
-        $('#modalBreakTime').val(breakSeconds < 60 ? '' : Math.floor(breakSeconds / 60));
-        $('#modalOvertimeStart').val(button.data('overtime-start'));
-        $('#modalOvertimeEnd').val(button.data('overtime-end'));
-    });
-
-
-    $('#attendanceEditForm').on('submit', function (e) {
+    // フォーム送信
+    $('#editAttendanceForm').submit(function(e) {
         e.preventDefault();
 
-        const workDate = $('#modalWorkDate').val(); // example: "2025-06-24" or "24"
-        const year = <?= $year ?>;
-        const month = <?= $month ?>;
+        var formData = $(this).serialize();
 
-        // If modalWorkDate only contains day (e.g. "24"), convert to YYYY-MM-DD
-        const paddedDay = workDate.toString().padStart(2, '0');
-        const fullDate = `${year}-${month.toString().padStart(2, '0')}-${paddedDay}`;
-
-        function formatDateTime(date, time) {
-            return `${date} ${time}:00`; // returns "YYYY-MM-DD HH:MM:SS"
-        }
-
-        const formData = {
-            attendance_id: $('#modalAttendanceId').val(),
-            staff_id: $('#modalStaffId').val(),
-            work_date: fullDate,
-            work_time: formatDateTime(fullDate, $('#modalWorkTime').val()),
-            leave_time: formatDateTime(fullDate, $('#modalLeaveTime').val()),
-            break_time: $('#modalBreakTime').val(), // still minutes
-            overtime_start_time: formatDateTime(fullDate, $('#modalOvertimeStart').val()),
-            overtime_end_time: formatDateTime(fullDate, $('#modalOvertimeEnd').val())
-        };
         $.ajax({
-            url: '<?= base_url() ?>admin/attendance/update_attendance',
-            type: 'POST',
+            url: '<?php echo base_url('api/update_attendance'); ?>',
+            method: 'POST',
             dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
             data: formData,
-            success: function (response) {
+            success: function(response) {
+                console.log('Update response:', response);
                 if (response.success) {
+                    alert('出退勤データが正常に更新されました。');
+                    $('#editAttendanceModal').modal('hide');
+                    // ページをリロードして最新のデータを表示
                     location.reload();
                 } else {
-                    alert('保存に失敗しました');
+                    alert('更新に失敗しました: ' + response.message);
                 }
             },
-            error: function () {
-                alert('通信エラーが発生しました');
+            error: function(xhr, status, error) {
+                console.log('Update AJAX Error:', xhr.responseText);
+                alert('サーバーエラーが発生しました。詳細: ' + xhr.responseText);
             }
         });
     });
-    document.getElementById('excelExportButton').addEventListener('click', function () {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '<?= base_url('admin/attendance/export_excel') ?>';
-
-        const inputs = {
-            year: '<?= $year ?>',
-            month: '<?= $month ?>',
-            company_id: '<?= $company_id ?>'
-        };
-
-        for (const name in inputs) {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = name;
-            input.value = inputs[name];
-            form.appendChild(input);
-        }
-
-        document.body.appendChild(form);
-        form.submit();
-    }); 
-
-
 });
-
 </script>
