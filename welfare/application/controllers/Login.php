@@ -29,14 +29,12 @@ class Login extends UserController
     public function index()
     {
         $this->data = array(
-            // 'company_id' => $this->input->post('company_id'),
-            // 'staff_id' => $this->input->post('staff_id'),
             'email' => $this->input->post('email'),
-            'staff_password' => $this->input->post('password'),
+            'password' => $this->input->post('password'),
             'remember' => $this->input->post('remember'),
         );
 
-        $this->form_validation->set_rules('email', 'メールアドレス', 'required|max_length[255]');
+        $this->form_validation->set_rules('email', 'メールアドレス', 'required|valid_email|max_length[128]');
         $this->form_validation->set_rules('password', 'パスワード', 'required|max_length[255]');
 
         if ($this->form_validation->run() === TRUE) {
@@ -53,8 +51,8 @@ class Login extends UserController
                 // Add a flag to indicate the user is logged in
                 $this->session->set_userdata('staff_logged_in', TRUE);
 
-                // Set role based on user type
-                if(isset($user['user_type']) && $user['user_type'] == 'admin') {
+                // Set role based on roleId
+                if(isset($user['roleId']) && $user['roleId'] == 1) {
                     $this->session->set_userdata('staff__role', ROLE_ADMIN);
                     $this->session->set_userdata('is_admin', TRUE);
                 } else {
@@ -84,7 +82,7 @@ class Login extends UserController
 
                 // $this->staff_model->lastLogin($loginInfo);
                 // Role-based redirect
-                if(isset($user['user_type']) && $user['user_type'] == 'admin') {
+                if(isset($user['roleId']) && $user['roleId'] == 1) {
                     // Admin user - redirect to admin dashboard
                     redirect('admin/dashboard');
                 } else {

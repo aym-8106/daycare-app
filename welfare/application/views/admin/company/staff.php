@@ -69,7 +69,7 @@
                                 <table class="table table-bordered table-striped">
                                     <thead>
                                         <tr>
-                                            <th>スタッフ番号</th>
+                                            <th>ユーザーID</th>
                                             <th>職員名</th>
                                             <th>メールアドレス</th>
                                             <th>役割</th>
@@ -79,9 +79,9 @@
                                     <tbody>
                                         <?php foreach ($staff_list as $staff) { ?>
                                             <tr>
-                                                <td><?php echo $staff['staff_number']; ?></td>
+                                                <td><?php echo $staff['staff_id']; ?></td>
                                                 <td><?php echo $staff['staff_name']; ?></td>
-                                                <td><?php echo $staff['staff_mail_address']; ?></td>
+                                                <td><?php echo $staff['email']; ?></td>
                                                 <td>
                                                     <?php
                                                     echo ($staff['staff_role'] == 1) ? '<span class="label label-primary">管理者</span>' : '<span class="label label-default">スタッフ</span>';
@@ -147,7 +147,7 @@
                     </div>
 
                     <div class="alert alert-warning">
-                        <i class="fa fa-warning"></i> 配属変更を行うと、転属先事業所で新しいスタッフ番号が自動で割り当てられます。
+                        <i class="fa fa-warning"></i> 配属変更を行うと、職員の所属事業所が変更されます。
                     </div>
                 </div>
                 <div class="modal-footer">

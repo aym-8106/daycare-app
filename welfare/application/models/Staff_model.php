@@ -7,8 +7,8 @@ class Staff_model extends Base_model
     public function __construct()
     {
         parent::__construct();
-        $this->table = 'tbl_staff';
-        $this->primary_key = 'staff_id';
+        $this->table = 'tbl_users';
+        $this->primary_key = 'userId';
     }
 
     // function getList($select,$where_data, $count_flag=false,$page=10, $offset=0,$order_by='')
@@ -41,22 +41,36 @@ class Staff_model extends Base_model
     //     }
     // }
 
+    function getListCount($where = array())
+    {
+        // tbl_usersからユーザー数を取得
+        $this->db->from('tbl_users');
+        if (!empty($where)) {
+            // del_flagをisDeletedに変換
+            if (isset($where['del_flag'])) {
+                $where['isDeleted'] = $where['del_flag'];
+                unset($where['del_flag']);
+            }
+            $this->db->where($where);
+        }
+        return $this->db->count_all_results();
+    }
+
     function getList($select,$where_data, $count_flag=false,$page=10, $offset=0,$order_by='')
     {
-        // スタッフ一覧を取得
-        $this->db->select('BaseTbl.staff_id, BaseTbl.company_id, BaseTbl.staff_name, BaseTbl.staff_mail_address, BaseTbl.create_date, BaseTbl.update_date, Company.company_name, Role.role, Jobtype.jobtypeId, Jobtype.jobtype, Employtype.employtypeId, Employtype.employtype');
-        $this->db->from('tbl_staff as BaseTbl');
-        $this->db->join('tbl_company as Company', 'Company.company_id = BaseTbl.company_id','left');
-        $this->db->join('tbl_roles as Role', 'Role.roleId = BaseTbl.staff_role','left');
-        $this->db->join('tbl_jobtype as Jobtype', 'Jobtype.jobtypeId = BaseTbl.staff_jobtype','left');
-        $this->db->join('tbl_employtype as Employtype', 'Employtype.employtypeId = BaseTbl.staff_employtype','left');
+        // tbl_usersからユーザー一覧を取得
+        $this->db->select('Users.userId as staff_id, Users.company_id, Users.name as staff_name, Users.email, Users.roleId, Users.createdDtm as create_date, Users.updatedDtm as update_date, Company.company_name, Role.role');
+        $this->db->from('tbl_users as Users');
+        $this->db->join('tbl_company as Company', 'Company.company_id = Users.company_id','left');
+        $this->db->join('tbl_roles as Role', 'Role.roleId = Users.roleId','left');
+
         if(is_array($where_data)){
             foreach ($where_data as $key => $value){
                 if($key == "searchText") {
                     $this->db->group_start();
-                    $this->db->like('BaseTbl.staff_name', $value);
+                    $this->db->like('Users.name', $value);
+                    $this->db->or_like('Users.email', $value);
                     $this->db->or_like('Company.company_name', $value);
-                    $this->db->or_like('BaseTbl.staff_mail_address', $value);
                     $this->db->group_end();
                 } else {
                     $this->db->where($key,$value);
@@ -65,18 +79,20 @@ class Staff_model extends Base_model
         }else{
             if(!empty($where_data)) {
                 $this->db->group_start();
-                $this->db->like('BaseTbl.staff_name', $where_data);
+                $this->db->like('Users.name', $where_data);
+                $this->db->or_like('Users.email', $where_data);
                 $this->db->or_like('Company.company_name', $where_data);
-                $this->db->or_like('BaseTbl.staff_mail_address', $where_data);
                 $this->db->group_end();
             }
         }
-        $this->db->where('BaseTbl.del_flag',0);
+        $this->db->where('Users.isDeleted', 0);
+
         if($order_by && is_array($order_by)){
             foreach ($order_by as $key => $value) {
                 $this->db->order_by($key, $value);
             }
         }
+
         if(!$count_flag){
             if($page){
                 $this->db->limit($page, $offset);
@@ -85,45 +101,12 @@ class Staff_model extends Base_model
                 $query = $this->db->get();
                 $result = $query->result_array();
 
-                // 管理者データも追加
-                $this->db->select('admin_id as staff_id, 0 as company_id, admin_name as staff_name, admin_email as staff_mail_address, create_date, update_date');
-                $this->db->from('tbl_admin');
-                $this->db->where('del_flag', 0);
-
-                // 検索条件があれば管理者にも適用
-                if (is_array($where_data)) {
-                    foreach ($where_data as $key => $value) {
-                        if ($key == "searchText") {
-                            $this->db->group_start();
-                            $this->db->like('admin_name', $value);
-                            $this->db->or_like('admin_email', $value);
-                            $this->db->group_end();
-                        }
-                    }
-                } else {
-                    if (!empty($where_data)) {
-                        $this->db->group_start();
-                        $this->db->like('admin_name', $where_data);
-                        $this->db->or_like('admin_email', $where_data);
-                        $this->db->group_end();
+                // 管理者データの会社名を設定
+                foreach ($result as &$user) {
+                    if ($user['roleId'] == 1 || empty($user['company_name'])) {
+                        $user['company_name'] = '管理者';
                     }
                 }
-
-                $admin_query = $this->db->get();
-                $admin_result = $admin_query->result_array();
-
-                // 管理者データを整形
-                foreach ($admin_result as &$admin) {
-                    $admin['company_name'] = '管理者';
-                    $admin['role'] = '管理者';
-                    $admin['jobtypeId'] = null;
-                    $admin['jobtype'] = '管理者';
-                    $admin['employtypeId'] = null;
-                    $admin['employtype'] = '管理者';
-                }
-
-                // スタッフと管理者を結合
-                $result = array_merge($admin_result, $result);
 
                 return $result;
             } catch (Exception $e) {
@@ -132,62 +115,27 @@ class Staff_model extends Base_model
                 return false;
             }
         }else{
-            // カウント時は管理者も含める
-            $staff_count = $this->db->count_all_results();
-
-            $this->db->select('admin_id');
-            $this->db->from('tbl_admin');
-            $this->db->where('del_flag', 0);
-
-            // 検索条件があれば管理者にも適用
-            if (is_array($where_data)) {
-                foreach ($where_data as $key => $value) {
-                    if ($key == "searchText") {
-                        $this->db->group_start();
-                        $this->db->like('admin_name', $value);
-                        $this->db->or_like('admin_email', $value);
-                        $this->db->group_end();
-                    }
-                }
-            } else {
-                if (!empty($where_data)) {
-                    $this->db->group_start();
-                    $this->db->like('admin_name', $where_data);
-                    $this->db->or_like('admin_email', $where_data);
-                    $this->db->group_end();
-                }
-            }
-
-            $admin_count = $this->db->count_all_results();
-
-            return $staff_count + $admin_count;
+            return $this->db->count_all_results();
         }
     }
 
     function getFromId($_id)
     {
-        // まずスタッフテーブルを確認
-        $this->db->select('*');
-        $this->db->from($this->table);
-        $this->db->where($this->primary_key, $_id);
+        // tbl_usersテーブルからuserIdで検索
+        $this->db->select('Users.userId as staff_id, Users.company_id, Users.name as staff_name, Users.email, Users.password as staff_password, Users.roleId, Company.company_name');
+        $this->db->from('tbl_users as Users');
+        $this->db->join('tbl_company as Company', 'Company.company_id = Users.company_id', 'left');
+        $this->db->where('Users.userId', $_id);
+        $this->db->where('Users.isDeleted', 0);
         $query = $this->db->get();
         $result = $query->row_array();
 
         if ($result) {
+            // Add company name for admin users (roleId = 1)
+            if ($result['roleId'] == 1) {
+                $result['company_name'] = '管理者';
+            }
             return $result;
-        }
-
-        // スタッフが見つからない場合は管理者テーブルを確認
-        $this->db->select('admin_id as staff_id, admin_name as staff_name, admin_email as staff_mail_address, admin_password as staff_password, 0 as company_id, create_date, update_date');
-        $this->db->from('tbl_admin');
-        $this->db->where('admin_id', $_id);
-        $this->db->where('del_flag', 0);
-        $admin_query = $this->db->get();
-        $admin_result = $admin_query->row_array();
-
-        if ($admin_result) {
-            $admin_result['user_type'] = 'admin';
-            return $admin_result;
         }
 
         return array();
@@ -291,62 +239,41 @@ class Staff_model extends Base_model
 
     function login($data)
     {
-        if(empty($data['email']) || empty($data['staff_password'])) {
+        if(empty($data['email']) || empty($data['password'])) {
             return false;
         }
 
         // Load password library
         $this->load->library('password_lib');
 
-        // First check admin table
-        $this->db->select('admin_id as staff_id, 0 as company_id, admin_name as staff_name, admin_password as staff_password, "管理者" as company_name, "admin" as user_type');
-        $this->db->from('tbl_admin');
-        $this->db->where('admin_email', $data['email']);
-        $this->db->where('del_flag', 0);
+        // Check tbl_users table with company join
+        $this->db->select('Users.userId as staff_id, Users.company_id, Users.name as staff_name, Users.email, Users.password as staff_password, Users.roleId, Company.company_name');
+        $this->db->from('tbl_users as Users');
+        $this->db->join('tbl_company as Company', 'Company.company_id = Users.company_id', 'left');
+        $this->db->where('Users.email', $data['email']);
+        $this->db->where('Users.isDeleted', 0);
 
-        $admin_query = $this->db->get();
+        $query = $this->db->get();
 
-        if ($admin_query->num_rows() > 0) {
-            $admin_result = $admin_query->row_array();
-
-            // Verify password using new library (supports both bcrypt and sha1)
-            if ($this->password_lib->verify($data['staff_password'], $admin_result['staff_password'])) {
-
-                // If password needs rehashing, update it
-                if ($this->password_lib->needs_rehash($admin_result['staff_password'])) {
-                    $new_hash = $this->password_lib->hash($data['staff_password']);
-                    $this->db->where('admin_id', $admin_result['staff_id']);
-                    $this->db->update('tbl_admin', array('admin_password' => $new_hash));
-                }
-
-                return $admin_result;
-            }
-        }
-
-        // If admin not found, check staff table
-        $this->db->select('BaseTbl.staff_id, BaseTbl.company_id, BaseTbl.staff_name, BaseTbl.staff_password, Company.company_name, "staff" as user_type');
-        $this->db->from('tbl_staff as BaseTbl');
-        $this->db->join('tbl_company as Company', 'Company.company_id = BaseTbl.company_id','left');
-        $this->db->where('BaseTbl.staff_mail_address',$data['email']);
-        $this->db->where("Company.del_flag", 0);
-        $this->db->where("BaseTbl.del_flag", 0);
-
-        $staff_query = $this->db->get();
-
-        if ($staff_query->num_rows() > 0) {
-            $staff_result = $staff_query->row_array();
+        if ($query->num_rows() > 0) {
+            $user_result = $query->row_array();
 
             // Verify password using new library (supports both bcrypt and sha1)
-            if ($this->password_lib->verify($data['staff_password'], $staff_result['staff_password'])) {
+            if ($this->password_lib->verify($data['password'], $user_result['staff_password'])) {
 
                 // If password needs rehashing, update it
-                if ($this->password_lib->needs_rehash($staff_result['staff_password'])) {
-                    $new_hash = $this->password_lib->hash($data['staff_password']);
-                    $this->db->where('staff_id', $staff_result['staff_id']);
-                    $this->db->update('tbl_staff', array('staff_password' => $new_hash));
+                if ($this->password_lib->needs_rehash($user_result['staff_password'])) {
+                    $new_hash = $this->password_lib->hash($data['password']);
+                    $this->db->where('userId', $user_result['staff_id']);
+                    $this->db->update('tbl_users', array('password' => $new_hash));
                 }
 
-                return $staff_result;
+                // Add company name for admin users (roleId = 1)
+                if ($user_result['roleId'] == 1) {
+                    $user_result['company_name'] = '管理者';
+                }
+
+                return $user_result;
             }
         }
 
@@ -355,15 +282,8 @@ class Staff_model extends Base_model
 
     function checkEmailExists($email,$_id=0)
     {
-        $this->db->select("staff_mail_address");
-        $this->db->from($this->table);
-        $this->db->where("staff_mail_address", $email);
-        $this->db->where("del_flag", 0);
-        if($_id != 0){
-            $this->db->where("staff_id !=", $_id);
-        }
-        $result = $this->db->get()->result();
-        return $result;
+        // Email functionality disabled for staff_id login system
+        return array();
     }
     function resetPasswordUser($data)
     {
@@ -384,13 +304,8 @@ class Staff_model extends Base_model
      */
     function getCustomerInfoByEmail($email)
     {
-        $this->db->select('staff_id, staff_mail_address, company_name');
-        $this->db->from('tbl_staff');
-        $this->db->where('del_flag', 0);
-        $this->db->where('staff_mail_address', $email);
-        $query = $this->db->get();
-
-        return $query->row();
+        // Email functionality disabled for staff_id login system
+        return null;
     }
 
     /**
@@ -411,15 +326,8 @@ class Staff_model extends Base_model
     // This function used to create new password by reset link
     function createPasswordUser($email, $password)
     {
-        // Load password library
-        $this->load->library('password_lib');
-
-        $hashed_password = $this->password_lib->hash($password);
-
-        $this->db->where('staff_mail_address', $email);
-        $this->db->where('del_flag', 0);
-        $this->db->update('tbl_staff', array('staff_password' => $hashed_password));
-        $this->db->delete('tbl_reset_password', array('email' => $email));
+        // Email functionality disabled for staff_id login system
+        return false;
     }
 
     function lastLogin($loginInfo)
@@ -467,9 +375,9 @@ class Staff_model extends Base_model
 
     function staff_edit($regdata, $data)
     {
-        $this->db->where('staff_id', $regdata['staff_id']);
+        $this->db->where('userId', $regdata['staff_id']);
         $this->db->where('company_id', $regdata['company_id']);
-        $this->db->update('tbl_staff', $data);
+        $this->db->update('tbl_users', $data);
         return $this->db->affected_rows();
     }
 
@@ -477,7 +385,7 @@ class Staff_model extends Base_model
     {
         $this->db->select('*');
         $this->db->from($this->table);
-        $this->db->where('tbl_staff.del_flag', 0);
+        $this->db->where('isDeleted', 0);
         $query = $this->db->get();
         return $query->result_array();
     }
@@ -524,15 +432,16 @@ class Staff_model extends Base_model
     }
 
     /**
-     * 事業所のスタッフ一覧を取得（スタッフ番号順）
+     * 事業所のスタッフ一覧を取得（ユーザーID順）
      */
     function get_staff_with_numbers($company_id)
     {
-        $this->db->select('staff_id, staff_name, staff_number, staff_mail_address, staff_role');
-        $this->db->from($this->table);
-        $this->db->where('company_id', $company_id);
-        $this->db->where('del_flag', 0);
-        $this->db->order_by('staff_number', 'ASC');
+        $this->db->select('Users.userId as staff_id, Users.name as staff_name, Users.email, Users.roleId as staff_role, Role.role');
+        $this->db->from('tbl_users as Users');
+        $this->db->join('tbl_roles as Role', 'Role.roleId = Users.roleId', 'left');
+        $this->db->where('Users.company_id', $company_id);
+        $this->db->where('Users.isDeleted', 0);
+        $this->db->order_by('Users.userId', 'ASC');
         $query = $this->db->get();
         return $query->result_array();
     }

@@ -143,7 +143,7 @@ class StaffManagement extends UserController
 
         // バリデーションルール
         $this->form_validation->set_rules('staff_name', '職員名', 'required|trim|max_length[100]');
-        $this->form_validation->set_rules('staff_mail_address', 'メールアドレス', 'required|valid_email|max_length[255]|is_unique[tbl_staff.staff_mail_address]');
+        $this->form_validation->set_rules('staff_mail_address', 'メールアドレス', 'required|valid_email|max_length[255]|is_unique[tbl_users.email]');
         $this->form_validation->set_rules('staff_password', 'パスワード', 'required|min_length[8]');
         $this->form_validation->set_rules('company_id', '事業所', 'required|integer');
         $this->form_validation->set_rules('staff_jobtype', '職種', 'required|integer');
@@ -199,7 +199,7 @@ class StaffManagement extends UserController
         // バリデーションルール
         $this->form_validation->set_rules('staff_name', '職員名', 'required|trim|max_length[100]');
         $email_rule = ($this->input->post('staff_mail_address') != $staff['staff_mail_address'])
-            ? 'required|valid_email|max_length[255]|is_unique[tbl_staff.staff_mail_address]'
+            ? 'required|valid_email|max_length[255]|is_unique[tbl_users.email]'
             : 'required|valid_email|max_length[255]';
         $this->form_validation->set_rules('staff_mail_address', 'メールアドレス', $email_rule);
 

@@ -87,9 +87,8 @@ class Company extends AdminController
                 $result = $this->company_model->updateCompany($this->data['company'], $_id);
                 if ($result) {
                     $this->session->set_flashdata('success', '正常に更新されました。');
-                    $this->session->set_flashdata('error', '');
+                    redirect('admin/company');
                 } else {
-                    $this->session->set_flashdata('success', '');
                     $this->session->set_flashdata('error', '更新に失敗しました。');
                 }
             } else {
@@ -712,6 +711,61 @@ class Company extends AdminController
         $this->data['company_list'] = $this->company_model->getList('*', array(), false);
 
         $this->_load_view_admin("admin/company/staff");
+    }
+
+    /**
+     * 郵便番号から住所を取得するAPI
+     */
+    public function get_address_by_zipcode()
+    {
+        $zipcode = $this->input->get('zipcode');
+
+        if (empty($zipcode)) {
+            echo json_encode(['error' => '郵便番号が指定されていません']);
+            return;
+        }
+
+        // 7桁の数字のみに整形
+        $zipcode = preg_replace('/[^0-9]/', '', $zipcode);
+
+        if (strlen($zipcode) !== 7) {
+            echo json_encode(['error' => '郵便番号の形式が正しくありません']);
+            return;
+        }
+
+        // zipcloud APIを呼び出し
+        $url = "https://zipcloud.ibsnet.co.jp/api/search?zipcode=" . $zipcode;
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($http_code === 200 && $response) {
+            $data = json_decode($response, true);
+
+            if (isset($data['results']) && count($data['results']) > 0) {
+                $result = $data['results'][0];
+                $address = $result['address1'] . $result['address2'] . $result['address3'];
+
+                echo json_encode([
+                    'success' => true,
+                    'address' => $address,
+                    'prefecture' => $result['address1'],
+                    'city' => $result['address2'],
+                    'town' => $result['address3']
+                ]);
+            } else {
+                echo json_encode(['error' => '該当する住所が見つかりませんでした']);
+            }
+        } else {
+            echo json_encode(['error' => 'APIの呼び出しに失敗しました']);
+        }
     }
 }
 

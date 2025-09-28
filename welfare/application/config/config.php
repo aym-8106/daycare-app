@@ -463,6 +463,7 @@ $config['csrf_regenerate'] = TRUE;
 $config['csrf_exclude_uris'] = array(
     'api/.*',
     'admin/adminattendance/.*',
+    'admin/company/get_address_by_zipcode.*',
     'attendance/.*',
     'login.*',
     '^$'
