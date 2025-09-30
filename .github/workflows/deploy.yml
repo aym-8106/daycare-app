@@ -25,6 +25,7 @@ jobs:
         Host sv16638.xserver.jp
           HostName sv16638.xserver.jp
           User ${{ secrets.SSH_USER }}
+          Port 10022
           StrictHostKeyChecking no
           UserKnownHostsFile=/dev/null
         EOF
@@ -34,7 +35,7 @@ jobs:
       run: |
         # welfareディレクトリのみをデプロイ
         rsync -avz --delete \
-          -e "ssh -o StrictHostKeyChecking=no" \
+          -e "ssh -p 10022 -o StrictHostKeyChecking=no" \
           --exclude='.git' \
           --exclude='.github' \
           --exclude='README.md' \
@@ -44,7 +45,7 @@ jobs:
 
     - name: Set correct permissions
       run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@sv16638.xserver.jp << 'EOF'
+        ssh -p 10022 -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@sv16638.xserver.jp << 'EOF'
           cd /home/xs752086/carenavi.site/public_html/welfare
           # ディレクトリのパーミッションを設定
           find . -type d -exec chmod 755 {} \;
