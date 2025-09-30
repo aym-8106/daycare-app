@@ -14,6 +14,8 @@
             <div class="" style="padding: 0 20px;">
                 <?php
                 $this->load->helper('form');
+                // 一時的なデバッグ情報 - コメントアウトしておきます
+                // var_dump($staff);
                 $error = $this->session->flashdata('error');
                 if ($error) {
                     ?>
@@ -44,6 +46,7 @@
                     <!-- form start -->
                     <form role="form" method="post" id="editStaff" role="form">
                         <input type="hidden" name="Password" value=""/>
+                        <?php echo form_hidden($this->security->get_csrf_token_name(), $this->security->get_csrf_hash()); ?>
                         <div class="box-header">
                             <h3 class="box-title">スタッフ編集</h3>
                             <input type="submit" class="btn btn-primary pull-right" value="保存"/>
@@ -57,12 +60,16 @@
                                         <select class="form-control required" id="company_name" name="company_name">
                                             <option value="0">事業所を選択</option>
                                             <?php
+                                            // デバッグ用：現在のスタッフのcompany_idを確認
+                                            // echo '<!-- Staff company_id: ' . (isset($staff['company_id']) ? $staff['company_id'] : 'NOT SET') . ' -->';
                                             if(!empty($companys))
                                             {
                                                 foreach ($companys as $company)
                                                 {
+                                                    $selected = ($company['company_id'] == $staff['company_id']) ? 'selected=selected' : '';
+                                                    // echo '<!-- Company: ' . $company['company_name'] . ' (ID: ' . $company['company_id'] . ') Selected: ' . $selected . ' -->';
                                                     ?>
-                                                    <option value="<?php echo $company['company_id'] ?>" <?php if($company['company_id'] == $staff['company_id']) {echo "selected=selected";} ?>><?php echo $company['company_name'] ?></option>
+                                                    <option value="<?php echo $company['company_id'] ?>" <?php echo $selected; ?>><?php echo $company['company_name'] ?></option>
                                                     <?php
                                                 }
                                             }
@@ -131,8 +138,8 @@
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="jobtype">職種</label>
-                                        
-                                        <select class="form-control required" id="jobtype" name="jobtype">
+
+                                        <select class="form-control" id="jobtype" name="jobtype">
                                             <option value="0">職種を選択</option>
                                             <?php
                                             if(!empty($jobtypes))
@@ -148,10 +155,11 @@
                                         </select>
                                     </div>
                                 </div>
+                                <!-- 勤務形態は現在未実装のためコメントアウト
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="employtype">勤務形態</label>
-                                        
+
                                         <select class="form-control required" id="employtype" name="employtype">
                                             <option value="0">勤務形態を選択</option>
                                             <?php
@@ -168,6 +176,7 @@
                                         </select>
                                     </div>
                                 </div>
+                                -->
                             </div>
                         </div><!-- /.box-body -->
 

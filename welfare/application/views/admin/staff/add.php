@@ -54,6 +54,7 @@
 
                     <form role="form" id="addStaff" action="<?php echo admin_url() ?>staff/add" method="post" role="form">
                         <input type="hidden" name="mode" value="save">
+                        <?php echo form_hidden($this->security->get_csrf_token_name(), $this->security->get_csrf_hash()); ?>
                         <div class="box-body">
                             <div class="row">
                                 <div class="col-md-6">

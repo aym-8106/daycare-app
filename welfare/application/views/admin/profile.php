@@ -58,16 +58,36 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="admin_name">管理者名</label>
-                                    <input type="text" class="form-control" id="admin_name" name="admin_name" value="<?php echo set_value('admin_name', isset($admin['admin_name']) ? $admin['admin_name'] : ''); ?>" maxlength="128" />
+                                    <label for="user_name">氏名</label>
+                                    <input type="text" class="form-control" id="user_name" name="user_name" value="<?php
+                                        $default_name = '';
+                                        if (isset($user['name'])) {
+                                            $default_name = $user['name'];
+                                        } elseif (isset($user['staff_name'])) {
+                                            $default_name = $user['staff_name'];
+                                        } elseif (isset($user['admin_name'])) {
+                                            $default_name = $user['admin_name'];
+                                        }
+                                        echo set_value('user_name', $default_name);
+                                    ?>" maxlength="128" />
                                 </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="admin_email">メールアドレス</label>
-                                    <input type="text" class="form-control" id="admin_email" name="admin_email" value="<?php echo set_value('admin_email', isset($admin['admin_email']) ? $admin['admin_email'] : ''); ?>">
+                                    <label for="user_email">メールアドレス</label>
+                                    <input type="text" class="form-control" id="user_email" name="user_email" value="<?php
+                                        $default_email = '';
+                                        if (isset($user['email'])) {
+                                            $default_email = $user['email'];
+                                        } elseif (isset($user['staff_mail_address'])) {
+                                            $default_email = $user['staff_mail_address'];
+                                        } elseif (isset($user['admin_email'])) {
+                                            $default_email = $user['admin_email'];
+                                        }
+                                        echo set_value('user_email', $default_email);
+                                    ?>">
                                 </div>
                             </div>
                         </div>

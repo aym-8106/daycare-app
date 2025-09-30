@@ -58,11 +58,14 @@ class Staff_model extends Base_model
 
     function getList($select,$where_data, $count_flag=false,$page=10, $offset=0,$order_by='')
     {
+        // クエリキャッシュをクリア
+        $this->db->flush_cache();
         // tbl_usersからユーザー一覧を取得
-        $this->db->select('Users.userId as staff_id, Users.company_id, Users.name as staff_name, Users.email, Users.roleId, Users.createdDtm as create_date, Users.updatedDtm as update_date, Company.company_name, Role.role');
+        $this->db->select('Users.userId as staff_id, Users.company_id, Users.name as staff_name, Users.email as staff_mail_address, Users.roleId, Users.jobtype_id, Users.createdDtm as create_date, Users.updatedDtm as update_date, Company.company_name, Role.role, IFNULL(Jobtype.jobtype, "") as jobtype, "" as employtype');
         $this->db->from('tbl_users as Users');
         $this->db->join('tbl_company as Company', 'Company.company_id = Users.company_id','left');
         $this->db->join('tbl_roles as Role', 'Role.roleId = Users.roleId','left');
+        $this->db->join('tbl_jobtype as Jobtype', 'Jobtype.jobtypeId = Users.jobtype_id','left');
 
         if(is_array($where_data)){
             foreach ($where_data as $key => $value){
@@ -91,6 +94,10 @@ class Staff_model extends Base_model
             foreach ($order_by as $key => $value) {
                 $this->db->order_by($key, $value);
             }
+        } else {
+            // デフォルトのソート順を追加（最新の更新順）
+            $this->db->order_by('Users.updatedDtm', 'DESC');
+            $this->db->order_by('Users.userId', 'ASC');
         }
 
         if(!$count_flag){
@@ -99,6 +106,8 @@ class Staff_model extends Base_model
             }
             try {
                 $query = $this->db->get();
+                // 一時的なデバッグ情報 - コメントアウトしておきます
+                // error_log('Staff getList SQL: ' . $this->db->last_query());
                 $result = $query->result_array();
 
                 // 管理者データの会社名を設定
@@ -121,8 +130,10 @@ class Staff_model extends Base_model
 
     function getFromId($_id)
     {
+        // クエリキャッシュをクリア
+        $this->db->flush_cache();
         // tbl_usersテーブルからuserIdで検索
-        $this->db->select('Users.userId as staff_id, Users.company_id, Users.name as staff_name, Users.email, Users.password as staff_password, Users.roleId, Company.company_name');
+        $this->db->select('Users.userId as staff_id, Users.company_id, Users.name as staff_name, Users.email as staff_mail_address, Users.password as staff_password, Users.roleId, Users.roleId as staff_role, Users.jobtype_id, Users.jobtype_id as staff_jobtype, Company.company_name');
         $this->db->from('tbl_users as Users');
         $this->db->join('tbl_company as Company', 'Company.company_id = Users.company_id', 'left');
         $this->db->where('Users.userId', $_id);
@@ -135,6 +146,24 @@ class Staff_model extends Base_model
             if ($result['roleId'] == 1) {
                 $result['company_name'] = '管理者';
             }
+            // jobtype_idが設定されていない場合はデフォルト値を設定
+            if (!isset($result['staff_jobtype']) || $result['staff_jobtype'] === null) {
+                $result['staff_jobtype'] = 1; // デフォルトの職種ID
+            }
+            // 勤務形態は現在未実装
+            $result['staff_employtype'] = 0;
+
+            // ビューで期待される必須フィールドの確認と設定
+            if (empty($result['staff_name'])) {
+                $result['staff_name'] = $result['name'] ?? '';
+            }
+            if (empty($result['staff_mail_address'])) {
+                $result['staff_mail_address'] = $result['email'] ?? '';
+            }
+            if (empty($result['staff_id'])) {
+                $result['staff_id'] = $result['userId'] ?? '';
+            }
+
             return $result;
         }
 

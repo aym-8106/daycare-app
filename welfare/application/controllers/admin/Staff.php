@@ -27,6 +27,11 @@ class Staff extends AdminController
      */
     public function index()
     {
+        // キャッシュを無効化して最新データを取得
+        $this->output->set_header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        $this->output->set_header('Cache-Control: post-check=0, pre-check=0', false);
+        $this->output->set_header('Pragma: no-cache');
+
         $mode = $this->input->post('mode');
         if ($mode == 'update') {
             // use_flag機能は削除されたため、この処理はコメントアウト
@@ -68,16 +73,25 @@ class Staff extends AdminController
         }
         $mode = $this->input->post('mode');
         if ($mode == 'save') {
+            // デバッグ用：POSTデータを確認
+            error_log('POST company_name: ' . $this->input->post('company_name'));
+            error_log('POST staff_name: ' . $this->input->post('staff_name'));
+            error_log('POST jobtype: ' . $this->input->post('jobtype'));
+
+            // tbl_usersテーブルのフィールド名に合わせてデータを準備
             $this->data['staff'] = array(
-                'staff_id' => $_id,
+                'userId' => $_id,
                 'company_id' => $this->input->post('company_name'),
-                'staff_name' => $this->input->post('staff_name'),
-                'staff_mail_address' => $this->input->post('staff_mail_address'),
-                'staff_password' => $this->input->post('staff_password'),
-                'staff_role' => $this->input->post('role'),
-                'staff_jobtype' => $this->input->post('jobtype'),
-                'staff_employtype' => $this->input->post('employtype'),
+                'name' => $this->input->post('staff_name'),
+                'email' => $this->input->post('staff_mail_address'),
+                'password' => $this->input->post('staff_password'),
+                'roleId' => $this->input->post('role'),
+                'jobtype_id' => $this->input->post('jobtype'),
+                // employtypeは現在未実装
             );
+
+            // デバッグ用：保存するデータを確認
+            error_log('Save data: ' . print_r($this->data['staff'], true));
 
             $this->form_validation->set_rules('staff_name', 'スタッフ名', 'trim|required|max_length[128]');
             $this->form_validation->set_rules('staff_mail_address', 'メールアドレス', 'trim|required|max_length[128]');
@@ -85,23 +99,43 @@ class Staff extends AdminController
             $this->form_validation->set_rules('staff_password_confirm', 'パスワード（確認）', 'trim|matches[staff_password]|max_length[20]');
 
             if ($this->form_validation->run() === TRUE) {
-                $this->data['staff']['update_date'] = date('Y-m-d H:i:s');
-                if (!empty($this->data['staff']['staff_password'])) {
-                    $this->data['staff']['staff_password'] = sha1($this->data['staff']['staff_password']);
+                // ユーザーIDを安全に取得
+                $user_id = null;
+                if (isset($this->user['userId'])) {
+                    $user_id = $this->user['userId'];
+                } elseif (isset($this->user['user_id'])) {
+                    $user_id = $this->user['user_id'];
+                } elseif (isset($this->user['id'])) {
+                    $user_id = $this->user['id'];
                 } else {
-                    unset($this->data['staff']['staff_password']);
+                    $user_id = 1; // デフォルト値として管理者ID
                 }
 
-                $result = $this->staff_model->edit($this->data['staff'], 'staff_id');
+                $this->data['staff']['updatedBy'] = $user_id;
+                $this->data['staff']['updatedDtm'] = date('Y-m-d H:i:s');
+                if (!empty($this->data['staff']['password'])) {
+                    // パスワードライブラリを使用してハッシュ化
+                    $this->load->library('password_lib');
+                    $this->data['staff']['password'] = $this->password_lib->hash($this->data['staff']['password']);
+                } else {
+                    unset($this->data['staff']['password']);
+                }
+
+                $result = $this->staff_model->edit($this->data['staff'], 'userId');
                 if ($result) {
                     $this->session->set_flashdata('success', '正常に更新されました。');
                     $this->session->set_flashdata('error', '');
+                    // 保存成功後はスタッフ一覧画面にリダイレクト
+                    redirect('admin/staff');
                 } else {
                     $this->session->set_flashdata('success', '');
                     $this->session->set_flashdata('error', '更新に失敗しました。');
+                    // エラーの場合もデータベースから再取得
+                    $this->data['staff'] = $this->staff_model->getFromId($_id);
                 }
             } else {
-
+                // バリデーションエラーの場合もデータベースから再取得
+                $this->data['staff'] = $this->staff_model->getFromId($_id);
             }
         } else {
             $this->data['staff'] = $staff;
@@ -109,8 +143,13 @@ class Staff extends AdminController
 
         $this->data['companys'] = $this->company_model->getList('*', array(), false, 0);
         $this->data['roles'] = $this->role_model->getStaffRoles();
+        // 職種情報を有効化
         $this->data['jobtypes'] = $this->jobtype_model->getStaffJobTypes();
-        $this->data['employtypes'] = $this->employtype_model->getAll();
+        // 勤務形態のオプションを直接定義
+        $this->data['employtypes'] = array(
+            array('employtypeId' => 1, 'employtype' => '常勤'),
+            array('employtypeId' => 2, 'employtype' => '非常勤')
+        );
 
         $this->_load_view_admin("admin/staff/edit");
 
@@ -124,15 +163,15 @@ class Staff extends AdminController
         $mode = $this->input->post('mode');
         if ($mode == 'save') {
 
+            // tbl_usersテーブルのフィールド名に合わせてデータを準備
             $this->data['staff'] = array(
-                'staff_id' => NULL,
                 'company_id' => $this->input->post('company_name'),
-                'staff_name' => $this->input->post('staff_name'),
-                'staff_mail_address' => $this->input->post('staff_mail_address'),
-                'staff_password' => $this->input->post('staff_password'),
-                'staff_role' => $this->input->post('role'),
-                'staff_jobtype' => $this->input->post('jobtype'),
-                'staff_employtype' => $this->input->post('employtype'),
+                'name' => $this->input->post('staff_name'),
+                'email' => $this->input->post('staff_mail_address'),
+                'password' => $this->input->post('staff_password'),
+                'roleId' => $this->input->post('role'),
+                'jobtype_id' => $this->input->post('jobtype'),
+                // employtypeは現在未実装
             );
 
             $this->form_validation->set_rules('staff_name', 'スタッフ名', 'trim|required|max_length[128]');
@@ -141,12 +180,26 @@ class Staff extends AdminController
             $this->form_validation->set_rules('staff_password_confirm', 'パスワード（確認）', 'trim|required|matches[staff_password]|max_length[20]');
 
             if ($this->form_validation->run() === TRUE) {
-                // スタッフ番号を自動生成
-                $this->data['staff']['staff_number'] = $this->staff_model->generate_next_staff_number($this->data['staff']['company_id']);
+                // パスワードライブラリを使用してハッシュ化
+                $this->load->library('password_lib');
+                $this->data['staff']['password'] = $this->password_lib->hash($this->data['staff']['password']);
 
-                $this->data['staff']['staff_password'] = sha1($this->data['staff']['staff_password']);
-                $this->data['staff']['create_date'] = date('Y-m-d H:i:s');
-                $this->data['staff']['update_date'] = date('Y-m-d H:i:s');
+                // ユーザーIDを安全に取得
+                $user_id = null;
+                if (isset($this->user['userId'])) {
+                    $user_id = $this->user['userId'];
+                } elseif (isset($this->user['user_id'])) {
+                    $user_id = $this->user['user_id'];
+                } elseif (isset($this->user['id'])) {
+                    $user_id = $this->user['id'];
+                } else {
+                    $user_id = 1; // デフォルト値として管理者ID
+                }
+
+                $this->data['staff']['createdBy'] = $user_id;
+                $this->data['staff']['createdDtm'] = date('Y-m-d H:i:s');
+                $this->data['staff']['updatedBy'] = $user_id;
+                $this->data['staff']['updatedDtm'] = date('Y-m-d H:i:s');
 
                 $result = $this->staff_model->add($this->data['staff']);
                 if ($result) {
@@ -167,8 +220,13 @@ class Staff extends AdminController
 
         $this->data['companys'] = $this->company_model->getList('*', array(), false, 0);
         $this->data['roles'] = $this->role_model->getStaffRoles();
+        // 職種情報を有効化
         $this->data['jobtypes'] = $this->jobtype_model->getStaffJobTypes();
-        $this->data['employtypes'] = $this->employtype_model->getAll();
+        // 勤務形態のオプションを直接定義
+        $this->data['employtypes'] = array(
+            array('employtypeId' => 1, 'employtype' => '常勤'),
+            array('employtypeId' => 2, 'employtype' => '非常勤')
+        );
 
         $this->_load_view_admin("admin/staff/add");
 

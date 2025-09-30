@@ -80,7 +80,7 @@
                         <th>メールアドレス</th>
                         <th>役職</th>
                         <th>職種</th>
-                        <th>勤務形態</th>
+                        <!-- <th>勤務形態</th> -->
                         <th>作成日付</th>
                         <th>更新日付</th>
                         <th class="text-center" style="width: 200px">アクション</th>
@@ -101,7 +101,7 @@
                         <td style="word-break: break-all"><?php echo $record['staff_mail_address'] ?></td>
                         <td style="word-break: break-all"><?php echo $record['role'] ?></td>
                         <td style="word-break: break-all"><?php echo $record['jobtype'] ?></td>
-                        <td style="word-break: break-all"><?php echo $record['employtype'] ?></td>
+                        <!-- <td style="word-break: break-all"><?php echo $record['employtype'] ?></td> -->
                         <td><?php echo date("Y-m-d", strtotime($record['create_date'])) ?></td>
                         <td><?php echo date("Y-m-d", strtotime($record['update_date'])) ?></td>
                         <td class="text-center">

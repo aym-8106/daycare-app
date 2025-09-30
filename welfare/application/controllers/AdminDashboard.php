@@ -180,12 +180,12 @@ class AdminDashboard extends UserController
             SELECT
                 COUNT(CASE WHEN a.work_time IS NOT NULL THEN 1 END) as checked_in,
                 COUNT(CASE WHEN a.leave_time IS NOT NULL THEN 1 END) as checked_out,
-                COUNT(CASE WHEN a.work_time IS NULL AND s.status = 1 THEN 1 END) as absent,
+                COUNT(CASE WHEN a.work_time IS NULL AND u.roleId > 1 THEN 1 END) as absent,
                 COUNT(CASE WHEN TIME(a.work_time) > '09:30:00' THEN 1 END) as late,
                 COUNT(CASE WHEN a.overtime_start_time IS NOT NULL THEN 1 END) as overtime
-            FROM tbl_staff s
-            LEFT JOIN tbl_attendance a ON s.staff_id = a.staff_id AND a.work_date = ?
-            WHERE s.company_id = ? AND s.del_flag = 0 AND s.status = 1
+            FROM tbl_users u
+            LEFT JOIN tbl_attendance a ON u.userId = a.staff_id AND a.work_date = ?
+            WHERE u.company_id = ? AND u.isDeleted = 0 AND u.roleId > 1
         ";
 
         $query = $this->db->query($sql, [$today, $company_id]);
@@ -199,10 +199,10 @@ class AdminDashboard extends UserController
     {
         $today = date('Y-m-d');
 
-        $this->db->select('s.staff_name, a.work_time, a.location');
-        $this->db->from('tbl_staff s');
-        $this->db->join('tbl_attendance a', 's.staff_id = a.staff_id AND a.work_date = "' . $today . '"');
-        $this->db->where('s.company_id', $company_id);
+        $this->db->select('u.name as staff_name, a.work_time, a.location');
+        $this->db->from('tbl_users u');
+        $this->db->join('tbl_attendance a', 'u.userId = a.staff_id AND a.work_date = "' . $today . '"');
+        $this->db->where('u.company_id', $company_id);
         $this->db->where('a.work_time IS NOT NULL');
         $this->db->where('a.leave_time IS NULL');
         $this->db->order_by('a.work_time');
@@ -218,10 +218,10 @@ class AdminDashboard extends UserController
     {
         $today = date('Y-m-d');
 
-        $this->db->select('s.staff_name, a.work_time');
-        $this->db->from('tbl_staff s');
-        $this->db->join('tbl_attendance a', 's.staff_id = a.staff_id AND a.work_date = "' . $today . '"');
-        $this->db->where('s.company_id', $company_id);
+        $this->db->select('u.name as staff_name, a.work_time');
+        $this->db->from('tbl_users u');
+        $this->db->join('tbl_attendance a', 'u.userId = a.staff_id AND a.work_date = "' . $today . '"');
+        $this->db->where('u.company_id', $company_id);
         $this->db->where('TIME(a.work_time) > "09:30:00"'); // 9:30以降を遅刻とする
         $this->db->order_by('a.work_time');
 
@@ -236,12 +236,12 @@ class AdminDashboard extends UserController
     {
         $today = date('Y-m-d');
 
-        $this->db->select('s.staff_name');
-        $this->db->from('tbl_staff s');
-        $this->db->join('tbl_attendance a', 's.staff_id = a.staff_id AND a.work_date = "' . $today . '"', 'left');
-        $this->db->where('s.company_id', $company_id);
-        $this->db->where('s.status', 1);
-        $this->db->where('s.del_flag', 0);
+        $this->db->select('u.name as staff_name');
+        $this->db->from('tbl_users u');
+        $this->db->join('tbl_attendance a', 'u.userId = a.staff_id AND a.work_date = "' . $today . '"', 'left');
+        $this->db->where('u.company_id', $company_id);
+        $this->db->where('u.roleId >', 1);
+        $this->db->where('u.isDeleted', 0);
         $this->db->where('a.work_time IS NULL');
 
         $query = $this->db->get();
@@ -255,10 +255,10 @@ class AdminDashboard extends UserController
     {
         $today = date('Y-m-d');
 
-        $this->db->select('s.staff_name, a.overtime_start_time, a.overtime_reason');
-        $this->db->from('tbl_staff s');
-        $this->db->join('tbl_attendance a', 's.staff_id = a.staff_id AND a.work_date = "' . $today . '"');
-        $this->db->where('s.company_id', $company_id);
+        $this->db->select('u.name as staff_name, a.overtime_start_time, a.overtime_reason');
+        $this->db->from('tbl_users u');
+        $this->db->join('tbl_attendance a', 'u.userId = a.staff_id AND a.work_date = "' . $today . '"');
+        $this->db->where('u.company_id', $company_id);
         $this->db->where('a.overtime_start_time IS NOT NULL');
         $this->db->order_by('a.overtime_start_time');
 
@@ -274,8 +274,8 @@ class AdminDashboard extends UserController
         $today = date('Y-m-d');
 
         $this->db->select('
-            s.staff_id,
-            s.staff_name,
+            u.userId as staff_id,
+            u.name as staff_name,
             a.work_time,
             a.leave_time,
             a.location,
@@ -285,12 +285,12 @@ class AdminDashboard extends UserController
                 ELSE "finished"
             END as status
         ');
-        $this->db->from('tbl_staff s');
-        $this->db->join('tbl_attendance a', 's.staff_id = a.staff_id AND a.work_date = "' . $today . '"', 'left');
-        $this->db->where('s.company_id', $company_id);
-        $this->db->where('s.del_flag', 0);
-        $this->db->where('s.status', 1);
-        $this->db->order_by('s.staff_name');
+        $this->db->from('tbl_users u');
+        $this->db->join('tbl_attendance a', 'u.userId = a.staff_id AND a.work_date = "' . $today . '"', 'left');
+        $this->db->where('u.company_id', $company_id);
+        $this->db->where('u.isDeleted', 0);
+        $this->db->where('u.roleId >', 1);
+        $this->db->order_by('u.name');
 
         $query = $this->db->get();
         return $query->result_array();
@@ -308,11 +308,11 @@ class AdminDashboard extends UserController
             SELECT
                 COUNT(CASE WHEN TIME(a.work_time) > '09:30:00' THEN 1 END) as late_count,
                 COUNT(CASE WHEN TIME(a.leave_time) < '17:30:00' AND a.leave_time IS NOT NULL THEN 1 END) as early_leave_count,
-                COUNT(CASE WHEN a.work_time IS NULL AND s.status = 1 THEN 1 END) as absent_count
-            FROM tbl_staff s
-            LEFT JOIN tbl_attendance a ON s.staff_id = a.staff_id
+                COUNT(CASE WHEN a.work_time IS NULL AND u.roleId > 1 THEN 1 END) as absent_count
+            FROM tbl_users u
+            LEFT JOIN tbl_attendance a ON u.userId = a.staff_id
                 AND a.work_date BETWEEN ? AND ?
-            WHERE s.company_id = ? AND s.del_flag = 0
+            WHERE u.company_id = ? AND u.isDeleted = 0
         ";
 
         $query = $this->db->query($sql, [$start_date, $end_date, $company_id]);
@@ -332,9 +332,9 @@ class AdminDashboard extends UserController
                 SUM(TIME_TO_SEC(TIMEDIFF(a.overtime_end_time, a.overtime_start_time))) / 3600 as total_overtime_hours,
                 COUNT(CASE WHEN a.overtime_start_time IS NOT NULL THEN 1 END) as overtime_days,
                 AVG(TIME_TO_SEC(TIMEDIFF(a.overtime_end_time, a.overtime_start_time))) / 3600 as avg_overtime_hours
-            FROM tbl_staff s
-            JOIN tbl_attendance a ON s.staff_id = a.staff_id
-            WHERE s.company_id = ? AND s.del_flag = 0
+            FROM tbl_users u
+            JOIN tbl_attendance a ON u.userId = a.staff_id
+            WHERE u.company_id = ? AND u.isDeleted = 0
                 AND a.work_date BETWEEN ? AND ?
                 AND a.overtime_start_time IS NOT NULL
         ";
