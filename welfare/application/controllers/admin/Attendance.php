@@ -24,9 +24,12 @@ class Attendance extends AdminController
 
     public function index()
     {
+        // ログインユーザーの事業所IDを取得
+        $user_company_id = isset($this->user['company_id']) ? $this->user['company_id'] : null;
+
         $this->data['year'] = isset($_GET['year']) ? $_GET['year'] : date('Y');
         $this->data['month'] = isset($_GET['month']) ? $_GET['month'] : date('n');
-        $this->data['company_id'] = isset($_GET['moncompany_idth']) ? $_GET['company_id'] : '';
+        $this->data['staff_id'] = isset($_GET['staff_id']) ? $_GET['staff_id'] : 'all';
 
         $this->data['full_month'] = date('m', strtotime(date('Y-') . $this->data['month'] . date('-d')));
 
@@ -35,13 +38,21 @@ class Attendance extends AdminController
 
         $this->data['days'] = date("t", strtotime($start_date));
 
-        $this->data['company_list'] = $this->company_model->getList("*", array());
+        // ログインユーザーの事業所のみ表示
+        $this->data['company_id'] = $user_company_id;
 
-        $this->data['company_id'] = isset($_GET['company_id']) ? $_GET['company_id'] : $this->data['company_list'][0]['company_id'];
+        // 同じ事業所の全スタッフを取得
+        $this->data['all_staff'] = $this->attendance_model->get_company_staff($user_company_id);
 
-        // $this->data['month_attendance_data'] = array();
-        $this->data['month_attendance_data'] = $this->attendance_model->get_attendance_data_for_admin($start_date, $end_date, $this->data['company_id']);
-        // print_R($this->data['month_attendance_data']);die;
+        // 選択されたスタッフの出退勤データを取得
+        if ($this->data['staff_id'] === 'all') {
+            // 全スタッフの出退勤データを取得
+            $this->data['month_attendance_data'] = $this->attendance_model->get_attendance_data_for_admin($start_date, $end_date, $this->data['company_id']);
+        } else {
+            // 特定スタッフの出退勤データを取得
+            $this->data['month_attendance_data'] = $this->attendance_model->get_attendance_data_for_staff($start_date, $end_date, $this->data['staff_id']);
+        }
+
         $this->_load_view_admin("admin/attendance/list");
     }
 

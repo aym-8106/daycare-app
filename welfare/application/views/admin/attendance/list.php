@@ -15,18 +15,19 @@
                         <h3 class="box-title">出退勤一覧 - <?php echo $year; ?>年<?php echo $month; ?>月</h3>
                         <div class="box-tools">
                             <form method="GET" class="form-inline">
-                                <div class="form-group">
-                                    <label>事業所:</label>
-                                    <select name="company_id" class="form-control input-sm" onchange="this.form.submit()">
-                                        <?php foreach($company_list as $company): ?>
-                                            <option value="<?php echo $company['company_id']; ?>"
-                                                <?php echo ($company['company_id'] == $company_id) ? 'selected' : ''; ?>>
-                                                <?php echo $company['company_name']; ?>
+                                <div class="form-group" style="margin-right: 10px;">
+                                    <label>職員:</label>
+                                    <select name="staff_id" class="form-control input-sm" onchange="this.form.submit()">
+                                        <option value="all" <?php echo ($staff_id === 'all') ? 'selected' : ''; ?>>全職員</option>
+                                        <?php foreach($all_staff as $staff): ?>
+                                            <option value="<?php echo $staff['staff_id']; ?>"
+                                                <?php echo ($staff_id == $staff['staff_id']) ? 'selected' : ''; ?>>
+                                                <?php echo $staff['staff_name']; ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
-                                <div class="form-group">
+                                <div class="form-group" style="margin-right: 10px;">
                                     <label>年:</label>
                                     <select name="year" class="form-control input-sm" onchange="this.form.submit()">
                                         <?php for($y = date('Y') - 2; $y <= date('Y') + 1; $y++): ?>
@@ -53,14 +54,9 @@
                     <div class="box-body">
                         <div class="row">
                             <div class="col-md-12">
-                                <form method="POST" action="<?php echo base_url('attendanceexport/export'); ?>" class="pull-right">
-                                    <input type="hidden" name="year" value="<?php echo $year; ?>">
-                                    <input type="hidden" name="month" value="<?php echo sprintf('%02d', $month); ?>">
-                                    <input type="hidden" name="company_id" value="<?php echo $company_id; ?>">
-                                    <button type="submit" class="btn btn-success btn-sm">
-                                        <i class="fa fa-download"></i> Excel出力
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-success btn-sm pull-right" id="openExportModal">
+                                    <i class="fa fa-download"></i> Excel出力
+                                </button>
                             </div>
                         </div>
 
@@ -68,19 +64,28 @@
                             <table class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
-                                        <th style="position: sticky; left: 0; background-color: #f4f4f4; z-index: 10;">日付</th>
+                                        <th style="position: sticky; left: 0; background-color: #f4f4f4; z-index: 10; min-width: 80px;">日付</th>
                                         <?php
-                                        // スタッフ一覧を取得
+                                        // スタッフ一覧を取得（全職員 or 選択された職員）
                                         $staff_list = array();
-                                        foreach($month_attendance_data as $record) {
-                                            if (!isset($staff_list[$record['staff_id']])) {
-                                                $staff_list[$record['staff_id']] = $record['staff_name'];
+                                        if ($staff_id === 'all') {
+                                            // 全職員を表示
+                                            foreach($all_staff as $staff) {
+                                                $staff_list[$staff['staff_id']] = $staff['staff_name'];
+                                            }
+                                        } else {
+                                            // 選択された職員のみ表示
+                                            foreach($all_staff as $staff) {
+                                                if ($staff['staff_id'] == $staff_id) {
+                                                    $staff_list[$staff['staff_id']] = $staff['staff_name'];
+                                                    break;
+                                                }
                                             }
                                         }
 
                                         // ヘッダーにスタッフ名を表示
-                                        foreach($staff_list as $staff_id => $staff_name): ?>
-                                            <th style="min-width: 200px;"><?php echo $staff_name; ?></th>
+                                        foreach($staff_list as $s_id => $s_name): ?>
+                                            <th style="min-width: 200px;"><?php echo $s_name; ?></th>
                                         <?php endforeach; ?>
                                     </tr>
                                 </thead>
@@ -90,8 +95,8 @@
                                     $attendance_by_day = array();
                                     foreach($month_attendance_data as $record) {
                                         $day = (int)$record['work_date'];
-                                        $staff_id = $record['staff_id'];
-                                        $attendance_by_day[$day][$staff_id] = $record;
+                                        $record_staff_id = $record['staff_id'];
+                                        $attendance_by_day[$day][$record_staff_id] = $record;
                                     }
 
                                     // 各日の行を表示
@@ -100,28 +105,32 @@
                                             <td style="position: sticky; left: 0; background-color: #f9f9f9; z-index: 10;">
                                                 <strong><?php echo $day; ?>日</strong>
                                             </td>
-                                            <?php foreach($staff_list as $staff_id => $staff_name): ?>
+                                            <?php foreach($staff_list as $s_id => $s_name): ?>
                                                 <td style="min-width: 200px; font-size: 12px;">
-                                                    <?php if(isset($attendance_by_day[$day][$staff_id])):
-                                                        $d = $attendance_by_day[$day][$staff_id]; ?>
+                                                    <?php if(isset($attendance_by_day[$day][$s_id])):
+                                                        $d = $attendance_by_day[$day][$s_id]; ?>
                                                         <div class="attendance-info">
-                                                            <strong>出勤:</strong> <?php echo date('H:i', strtotime($d['work_time'])); ?><br>
-                                                            <strong>退勤:</strong> <?php echo date('H:i', strtotime($d['leave_time'])); ?><br>
+                                                            <strong>出勤:</strong> <?php echo $d['work_time'] ? $d['work_time'] : '-'; ?><br>
+                                                            <strong>退勤:</strong> <?php echo $d['leave_time'] ? $d['leave_time'] : '-'; ?><br>
                                                             <strong>休憩:</strong>
                                                             <?php
-                                                            if ($d['total_break_time'] < 60) {
-                                                                echo '1分未満';
+                                                            if (isset($d['total_break_time']) && $d['total_break_time'] > 0) {
+                                                                if ($d['total_break_time'] < 60) {
+                                                                    echo '1分未満';
+                                                                } else {
+                                                                    echo floor($d['total_break_time'] / 60) . '分';
+                                                                }
                                                             } else {
-                                                                echo floor($d['total_break_time'] / 60) . '分';
+                                                                echo '-';
                                                             }
                                                             ?><br>
-                                                            <?php if(!empty($d['overtime_start_time']) && !empty($d['overtime_end_time'])): ?>
-                                                                <strong>残業:</strong> <?php echo date('H:i', strtotime($d['overtime_start_time'])); ?>～<?php echo date('H:i', strtotime($d['overtime_end_time'])); ?>
+                                                            <?php if(!empty($d['overtime_start_time']) && !empty($d['overtime_end_time']) && $d['overtime_start_time'] != '00:00' && $d['overtime_end_time'] != '00:00'): ?>
+                                                                <strong>残業:</strong> <?php echo $d['overtime_start_time']; ?>～<?php echo $d['overtime_end_time']; ?>
                                                             <?php endif; ?>
                                                             <div class="edit-buttons" style="margin-top: 5px;">
                                                                 <button class="btn btn-xs btn-warning edit-attendance-btn"
                                                                         data-attendance-id="<?php echo $d['attendance_id']; ?>"
-                                                                        data-staff-name="<?php echo $d['staff_name']; ?>"
+                                                                        data-staff-name="<?php echo $s_name; ?>"
                                                                         data-work-date="<?php echo $year . '-' . sprintf('%02d', $month) . '-' . sprintf('%02d', $day); ?>">
                                                                     <i class="fa fa-edit"></i> 編集
                                                                 </button>
@@ -142,6 +151,56 @@
             </div>
         </div>
     </section>
+</div>
+
+<!-- Excel出力モーダル -->
+<div class="modal fade" id="exportModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form method="POST" action="<?php echo base_url('attendanceexport/export'); ?>" id="exportForm">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <h4 class="modal-title">Excel出力 - 職員選択</h4>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="<?php echo $this->security->get_csrf_token_name(); ?>" value="<?php echo $this->security->get_csrf_hash(); ?>">
+                    <input type="hidden" name="year" value="<?php echo $year; ?>">
+                    <input type="hidden" name="month" value="<?php echo sprintf('%02d', $month); ?>">
+                    <input type="hidden" name="company_id" value="<?php echo $company_id; ?>">
+
+                    <div class="form-group">
+                        <label><strong>出力する職員を選択してください:</strong></label>
+                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" id="selectAllStaff" checked> <strong>全員選択</strong>
+                                </label>
+                            </div>
+                            <hr style="margin: 10px 0;">
+                            <?php foreach($all_staff as $staff): ?>
+                                <div class="checkbox">
+                                    <label>
+                                        <input type="checkbox" name="selected_staff[]" value="<?php echo $staff['staff_id']; ?>" class="staff-checkbox" checked>
+                                        <?php echo $staff['staff_name']; ?>
+                                    </label>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i> CSV形式でダウンロードされます。Excelで開くことができます。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fa fa-download"></i> ダウンロード
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <!-- 出退勤編集モーダル -->
@@ -244,6 +303,27 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
+    // Excel出力モーダルを開く
+    $('#openExportModal').click(function() {
+        $('#exportModal').modal('show');
+    });
+
+    // 全員選択チェックボックス
+    $('#selectAllStaff').change(function() {
+        $('.staff-checkbox').prop('checked', $(this).prop('checked'));
+    });
+
+    // 個別チェックボックスが変更されたら全員選択を解除
+    $('.staff-checkbox').change(function() {
+        if (!$(this).prop('checked')) {
+            $('#selectAllStaff').prop('checked', false);
+        } else {
+            // 全てがチェックされているか確認
+            var allChecked = $('.staff-checkbox:checked').length === $('.staff-checkbox').length;
+            $('#selectAllStaff').prop('checked', allChecked);
+        }
+    });
+
     // 編集ボタンクリック時
     $('.edit-attendance-btn').click(function() {
         var attendanceId = $(this).data('attendance-id');

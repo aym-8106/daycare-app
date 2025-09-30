@@ -11,11 +11,11 @@ class Attendance_model extends Base_model
         $this->primary_key = 'attendance_id';
     }
 
-    function get_today_data($data) 
+    function get_today_data($data)
     {
-        $this->db->select('BaseTbl.*, Staff.staff_name');
+        $this->db->select('BaseTbl.*, Users.name as staff_name');
         $this->db->from('tbl_attendance as BaseTbl');
-        $this->db->join('tbl_staff as Staff', 'Staff.staff_id = BaseTbl.staff_id','left');
+        $this->db->join('tbl_users as Users', 'Users.userId = BaseTbl.staff_id','left');
         if(!empty($data['staff_id'])) $this->db->where('BaseTbl.staff_id', $data['staff_id']);
         $this->db->where('BaseTbl.work_date', $data['today_date']);
         $query = $this->db->get();
@@ -27,11 +27,11 @@ class Attendance_model extends Base_model
     /**
      * 管理者用の今日の出退勤データを取得
      */
-    function get_admin_today_data($admin_as_staff_id, $today_date)
+    function get_admin_today_data($staff_id, $today_date)
     {
         $this->db->select('*');
         $this->db->from('tbl_attendance');
-        $this->db->where('staff_id', $admin_as_staff_id);
+        $this->db->where('staff_id', $staff_id);
         $this->db->where('work_date', $today_date);
         $query = $this->db->get();
 
@@ -187,7 +187,7 @@ class Attendance_model extends Base_model
             tbl_attendance.attendance_id,
             Company.company_id,
             tbl_attendance.staff_id,
-            Staff.staff_name,
+            Users.name as staff_name,
             DATE_FORMAT(work_date, '%e') AS work_date,
             DATE_FORMAT(work_time, '%H:%i') AS work_time,
             DATE_FORMAT(leave_time, '%H:%i') AS leave_time,
@@ -197,11 +197,11 @@ class Attendance_model extends Base_model
             TIMEDIFF(overtime_end_time, overtime_start_time) AS overtime_duration
         ");
         $this->db->from($this->table);
-        $this->db->join('tbl_staff as Staff', 'Staff.staff_id = '.$this->table.'.staff_id','left');
-        $this->db->join('tbl_company as Company', 'Staff.company_id = Company.company_id','left');
+        $this->db->join('tbl_users as Users', 'Users.userId = '.$this->table.'.staff_id','left');
+        $this->db->join('tbl_company as Company', 'Users.company_id = Company.company_id','left');
         $this->db->where('work_date >=', $start_date);
         $this->db->where('work_date <=', $end_date);
-        $this->db->where('Staff.company_id', $company_id); 
+        $this->db->where('Users.company_id', $company_id); 
         $this->db->order_by('Company.company_id', 'ASC');
         $this->db->order_by($this->table.'.staff_id', 'ASC');
         $this->db->order_by($this->table.'.work_date', 'ASC');
@@ -212,14 +212,41 @@ class Attendance_model extends Base_model
     
 
     function get_company_staff($company_id) {
-        $this->db->select('staff_id,staff_name');
-        $this->db->from('tbl_staff');
+        $this->db->select('userId as staff_id, name as staff_name');
+        $this->db->from('tbl_users');
         $this->db->where('company_id', $company_id);
-        $this->db->where('staff_role >', 1);
-        $this->db->where('del_flag', 0);
-        $this->db->order_by('staff_jobtype', 'ASC');
+        $this->db->where('roleId >', 1);
+        $this->db->where('isDeleted', 0);
+        $this->db->order_by('name', 'ASC');
         $query = $this->db->get();
 
+        return $query->result_array();
+    }
+
+    /**
+     * 特定スタッフの出退勤データを取得
+     */
+    function get_attendance_data_for_staff($start_date, $end_date, $staff_id) {
+        $this->db->select("
+            tbl_attendance.attendance_id,
+            tbl_attendance.staff_id,
+            Users.name as staff_name,
+            DATE_FORMAT(work_date, '%e') AS work_date,
+            DATE_FORMAT(work_time, '%H:%i') AS work_time,
+            DATE_FORMAT(leave_time, '%H:%i') AS leave_time,
+            DATE_FORMAT(overtime_start_time, '%H:%i') AS overtime_start_time,
+            DATE_FORMAT(overtime_end_time, '%H:%i') AS overtime_end_time,
+            (break_time + overtime_break_time) AS total_break_time,
+            TIMEDIFF(overtime_end_time, overtime_start_time) AS overtime_duration
+        ");
+        $this->db->from($this->table);
+        $this->db->join('tbl_users as Users', 'Users.userId = '.$this->table.'.staff_id','left');
+        $this->db->where('work_date >=', $start_date);
+        $this->db->where('work_date <=', $end_date);
+        $this->db->where($this->table.'.staff_id', $staff_id);
+        $this->db->order_by($this->table.'.work_date', 'ASC');
+
+        $query = $this->db->get();
         return $query->result_array();
     }
 
@@ -265,11 +292,11 @@ class Attendance_model extends Base_model
     {
         $this->db->select('
             tbl_attendance_correction.*,
-            tbl_staff.staff_name,
+            tbl_users.name as staff_name,
             tbl_attendance.work_date
         ');
         $this->db->from('tbl_attendance_correction');
-        $this->db->join('tbl_staff', 'tbl_staff.staff_id = tbl_attendance_correction.staff_id', 'left');
+        $this->db->join('tbl_users', 'tbl_users.userId = tbl_attendance_correction.staff_id', 'left');
         $this->db->join('tbl_attendance', 'tbl_attendance.attendance_id = tbl_attendance_correction.attendance_id', 'left');
 
         if ($staff_id) {
@@ -310,8 +337,8 @@ class Attendance_model extends Base_model
     public function get_monthly_statistics($start_date, $end_date, $company_id = null, $staff_id = null)
     {
         $this->db->select("
-            tbl_staff.staff_id,
-            tbl_staff.staff_name,
+            tbl_users.userId as staff_id,
+            tbl_users.name as staff_name,
             COUNT(tbl_attendance.attendance_id) as work_days,
             SUM(CASE WHEN tbl_attendance.work_time IS NOT NULL THEN 1 ELSE 0 END) as actual_work_days,
             AVG(TIME_TO_SEC(TIMEDIFF(tbl_attendance.leave_time, tbl_attendance.work_time))) / 3600 as avg_work_hours,
@@ -319,22 +346,22 @@ class Attendance_model extends Base_model
             SUM(tbl_attendance.break_time) / 60 as total_break_minutes
         ");
 
-        $this->db->from('tbl_staff');
-        $this->db->join('tbl_attendance', 'tbl_staff.staff_id = tbl_attendance.staff_id', 'left');
+        $this->db->from('tbl_users');
+        $this->db->join('tbl_attendance', 'tbl_users.userId = tbl_attendance.staff_id', 'left');
 
         if ($company_id) {
-            $this->db->where('tbl_staff.company_id', $company_id);
+            $this->db->where('tbl_users.company_id', $company_id);
         }
         if ($staff_id) {
-            $this->db->where('tbl_staff.staff_id', $staff_id);
+            $this->db->where('tbl_users.userId', $staff_id);
         }
 
         $this->db->where('tbl_attendance.work_date >=', $start_date);
         $this->db->where('tbl_attendance.work_date <=', $end_date);
-        $this->db->where('tbl_staff.del_flag', 0);
+        $this->db->where('tbl_users.isDeleted', 0);
 
-        $this->db->group_by('tbl_staff.staff_id');
-        $this->db->order_by('tbl_staff.staff_name');
+        $this->db->group_by('tbl_users.userId');
+        $this->db->order_by('tbl_users.name');
 
         $query = $this->db->get();
         return $query->result_array();
@@ -391,12 +418,12 @@ class Attendance_model extends Base_model
         // 長時間労働の検出（12時間以上）
         $this->db->select('
             tbl_attendance.*,
-            tbl_staff.staff_name,
+            tbl_users.name as staff_name,
             TIMEDIFF(leave_time, work_time) as work_duration
         ');
         $this->db->from('tbl_attendance');
-        $this->db->join('tbl_staff', 'tbl_staff.staff_id = tbl_attendance.staff_id');
-        $this->db->where('tbl_staff.company_id', $company_id);
+        $this->db->join('tbl_users', 'tbl_users.userId = tbl_attendance.staff_id');
+        $this->db->where('tbl_users.company_id', $company_id);
         $this->db->where('tbl_attendance.work_date >=', $start_date);
         $this->db->where('tbl_attendance.work_date <=', $end_date);
         $this->db->where('TIME_TO_SEC(TIMEDIFF(leave_time, work_time)) > 43200'); // 12時間
@@ -482,10 +509,10 @@ class Attendance_model extends Base_model
     {
         $this->db->select('
             log.*,
-            staff.staff_name
+            users.name as staff_name
         ');
         $this->db->from('tbl_attendance_edit_log log');
-        $this->db->join('tbl_staff staff', 'staff.staff_id = log.staff_id', 'left');
+        $this->db->join('tbl_users users', 'users.userId = log.staff_id', 'left');
 
         if ($attendance_id) {
             $this->db->where('log.attendance_id', $attendance_id);
@@ -512,13 +539,13 @@ class Attendance_model extends Base_model
     {
         $this->db->select('
             att.*,
-            staff.staff_name,
-            staff.staff_number,
+            users.name as staff_name,
+            users.userId as staff_number,
             company.company_name
         ');
         $this->db->from($this->table . ' att');
-        $this->db->join('tbl_staff staff', 'staff.staff_id = att.staff_id', 'left');
-        $this->db->join('tbl_company company', 'company.company_id = staff.company_id', 'left');
+        $this->db->join('tbl_users users', 'users.userId = att.staff_id', 'left');
+        $this->db->join('tbl_company company', 'company.company_id = users.company_id', 'left');
         $this->db->where('att.attendance_id', $attendance_id);
 
         $query = $this->db->get();
