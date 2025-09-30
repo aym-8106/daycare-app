@@ -20,7 +20,9 @@ jobs:
 
     - name: Add server to known hosts
       run: |
+        mkdir -p ~/.ssh
         ssh-keyscan -H sv16638.xserver.jp >> ~/.ssh/known_hosts
+        chmod 644 ~/.ssh/known_hosts
 
     - name: Deploy to Xserver
       run: |
