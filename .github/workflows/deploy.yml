@@ -1,0 +1,47 @@
+name: Deploy to Xserver
+
+on:
+  push:
+    branches:
+      - main  # mainブランチにpushされた時に実行
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H sv16638.xserver.jp >> ~/.ssh/known_hosts
+
+    - name: Deploy to Xserver
+      run: |
+        # welfareディレクトリのみをデプロイ
+        rsync -avz --delete \
+          --exclude='.git' \
+          --exclude='.github' \
+          --exclude='README.md' \
+          --exclude='.gitignore' \
+          --exclude='daycare' \
+          ./welfare/ ${{ secrets.SSH_USER }}@sv16638.xserver.jp:/home/xs752086/carenavi.site/public_html/welfare/
+
+    - name: Set correct permissions
+      run: |
+        ssh ${{ secrets.SSH_USER }}@sv16638.xserver.jp << 'EOF'
+          cd /home/xs752086/carenavi.site/public_html/welfare
+          # ディレクトリのパーミッションを設定
+          find . -type d -exec chmod 755 {} \;
+          # ファイルのパーミッションを設定
+          find . -type f -exec chmod 644 {} \;
+          # 書き込み可能なディレクトリ
+          chmod -R 777 application/cache 2>/dev/null || true
+          chmod -R 777 application/logs 2>/dev/null || true
+          chmod -R 777 uploads 2>/dev/null || true
+          echo "デプロイ完了"
+        EOF
