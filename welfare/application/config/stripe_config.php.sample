@@ -1,0 +1,112 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+/*
+|--------------------------------------------------------------------------
+| Stripe Configuration Sample
+|--------------------------------------------------------------------------
+|
+| これはstripe_config.phpのテンプレートファイルです
+|
+| セットアップ手順:
+| 1. このファイルをコピーして stripe_config.php にリネーム
+| 2. Stripe Dashboard (https://dashboard.stripe.com) からAPIキーを取得
+| 3. 以下の 'xxxxx' の部分を実際のAPIキーに置き換え
+| 4. stripe_config.php は .gitignore に含まれており、Gitにコミットされません
+|
+*/
+
+// ============================================
+// 環境の切り替え (test / live)
+// ============================================
+$config['stripe_environment'] = 'test'; // 本番では 'live' に変更
+
+// ============================================
+// テストモードのAPIキー
+// ============================================
+// Stripe Dashboard → 開発者 → APIキー（テストモード）で取得
+$config['stripe_test_publishable_key'] = 'pk_test_xxxxxxxxxxxxxxxxxxxxx';
+$config['stripe_test_secret_key'] = 'sk_test_xxxxxxxxxxxxxxxxxxxxx';
+$config['stripe_test_webhook_secret'] = 'whsec_xxxxxxxxxxxxxxxxxxxxx';
+
+// ============================================
+// 本番モードのAPIキー（環境変数から取得推奨）
+// ============================================
+// 本番環境では環境変数から読み込むことを強く推奨
+$config['stripe_live_publishable_key'] = getenv('STRIPE_LIVE_PUBLISHABLE_KEY') ?: '';
+$config['stripe_live_secret_key'] = getenv('STRIPE_LIVE_SECRET_KEY') ?: '';
+$config['stripe_live_webhook_secret'] = getenv('STRIPE_LIVE_WEBHOOK_SECRET') ?: '';
+
+// ============================================
+// 現在の環境に応じたキーを設定
+// ============================================
+if ($config['stripe_environment'] === 'live') {
+    $config['stripe_publishable_key'] = $config['stripe_live_publishable_key'];
+    $config['stripe_secret_key'] = $config['stripe_live_secret_key'];
+    $config['stripe_webhook_secret'] = $config['stripe_live_webhook_secret'];
+} else {
+    $config['stripe_publishable_key'] = $config['stripe_test_publishable_key'];
+    $config['stripe_secret_key'] = $config['stripe_test_secret_key'];
+    $config['stripe_webhook_secret'] = $config['stripe_test_webhook_secret'];
+}
+
+// ============================================
+// Stripe API バージョン
+// ============================================
+$config['stripe_api_version'] = '2023-10-16';
+
+// ============================================
+// 通貨設定
+// ============================================
+$config['stripe_currency'] = 'jpy'; // 日本円
+
+// ============================================
+// リダイレクトURL
+// ============================================
+// 決済成功時のリダイレクト先（相対パス）
+// 実際のURLは使用時にbase_url()と組み合わせて生成します
+$config['stripe_success_url_path'] = 'company/payment-success';
+
+// 決済キャンセル時のリダイレクト先（相対パス）
+$config['stripe_cancel_url_path'] = 'company/payment-cancel';
+
+// ============================================
+// Pricing Table ID
+// ============================================
+// Stripe Dashboard → 商品 → Pricing Table で取得
+$config['stripe_pricing_table_id'] = 'prctbl_xxxxxxxxxxxxxxxxxxxxx';
+
+// ============================================
+// ロギング設定
+// ============================================
+$config['stripe_log_enabled'] = TRUE; // 本番環境でもログ記録推奨
+// 実際のパスは使用時にAPPPATHと組み合わせて生成します
+$config['stripe_log_path'] = 'logs/stripe_';
+
+// ============================================
+// セキュリティ設定
+// ============================================
+// Webhook署名検証を必須にする（本番では必ずTRUEに）
+$config['stripe_webhook_signature_required'] = TRUE;
+
+/*
+|--------------------------------------------------------------------------
+| セットアップ完了チェックリスト
+|--------------------------------------------------------------------------
+|
+| □ stripe_config.php にこのファイルをコピーしてリネーム
+| □ Stripe Dashboard でテストモードAPIキーを取得
+| □ stripe_test_publishable_key を実際の値に置き換え
+| □ stripe_test_secret_key を実際の値に置き換え
+| □ stripe_test_webhook_secret を実際の値に置き換え（Stripe CLIで取得）
+| □ stripe_pricing_table_id を実際の値に置き換え
+| □ base_url() が正しく設定されているか確認（application/config/config.php）
+| □ .gitignore に stripe_config.php が含まれているか確認
+|
+| Webhook Secret の取得方法:
+| 1. Stripe CLI をインストール
+| 2. stripe login で認証
+| 3. stripe listen --forward-to http://localhost/your-app/stripe_webhook を実行
+| 4. 表示される whsec_xxxxx をコピー
+|
+*/

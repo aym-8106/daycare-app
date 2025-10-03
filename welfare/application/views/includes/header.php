@@ -5,6 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title><?php echo (empty($title)) ?  '管理画面': $title; ?></title>
     <meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://code.jquery.com https://cdn.jsdelivr.net https://js.stripe.com chrome-extension:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https: chrome-extension:; connect-src 'self' https://code.jquery.com https://js.stripe.com chrome-extension:; frame-src https://js.stripe.com;">
     <link rel="icon" type="image/png" href="/favicon.png">
     <!-- Bootstrap 3.3.4 -->
     <link href="<?php echo base_url(); ?>assets/bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -83,7 +84,14 @@
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                             <img src="<?php echo base_url(); ?>assets/dist/img/avatar.png" class="user-image"
                                  alt="User Image"/>
-                            <span class="hidden-xs"><?php echo($user['staff_name']); ?></span>
+                            <span class="hidden-xs"><?php
+                                if (isset($user['staff_name'])) {
+                                    echo $user['staff_name'];
+                                } else {
+                                    $staff = $this->session->userdata('staff');
+                                    echo !empty($staff['staff_name']) ? $staff['staff_name'] : 'ユーザー';
+                                }
+                            ?></span>
                         </a>
                         <ul class="dropdown-menu">
                             <!-- User image -->
@@ -92,7 +100,14 @@
                                 <img src="<?php echo base_url(); ?>assets/dist/img/avatar.png" class="img-circle"
                                      alt="User Image"/>
                                 <p>
-                                    <?php echo($user['staff_name']); ?>
+                                    <?php
+                                        if (isset($user['staff_name'])) {
+                                            echo $user['staff_name'];
+                                        } else {
+                                            $staff = $this->session->userdata('staff');
+                                            echo !empty($staff['staff_name']) ? $staff['staff_name'] : 'ユーザー';
+                                        }
+                                    ?>
                                 </p>
 
                             </li>

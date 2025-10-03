@@ -466,6 +466,7 @@ $config['csrf_exclude_uris'] = array(
     'admin/company/get_address_by_zipcode.*',
     'attendance/.*',
     'login.*',
+    'stripe_webhook/.*',  // Stripe Webhook エンドポイント
     '^$'
 );
 

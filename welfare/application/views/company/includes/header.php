@@ -3,9 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title><?php echo $title; ?></title>
+    <title><?php echo isset($title) ? $title : '料金プラン'; ?></title>
     <meta content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' name='viewport'>
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="icon" type="image/png" href="<?php echo base_url(); ?>favicon.png">
     <!-- Bootstrap 3.3.4 -->
     <link href="<?php echo base_url(); ?>assets/bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet"
           type="text/css"/>
@@ -68,7 +68,15 @@
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                             <img src="<?php echo base_url(); ?>assets/dist/img/avatar.png" class="user-image"
                                  alt="User Image"/>
-                            <span class="hidden-xs"><?php echo($user['company_name']); ?></span>
+                            <span class="hidden-xs"><?php
+                                if (isset($user['company_name'])) {
+                                    echo $user['company_name'];
+                                } elseif (isset($user['staff_name'])) {
+                                    echo $user['staff_name'];
+                                } else {
+                                    echo '事業所';
+                                }
+                            ?></span>
                         </a>
                         <ul class="dropdown-menu">
                             <!-- User image -->
@@ -77,7 +85,15 @@
                                 <img src="<?php echo base_url(); ?>assets/dist/img/avatar.png" class="img-circle"
                                      alt="User Image"/>
                                 <p>
-                                    <?php echo $user['company_name']; ?>
+                                    <?php
+                                        if (isset($user['company_name'])) {
+                                            echo $user['company_name'];
+                                        } elseif (isset($user['staff_name'])) {
+                                            echo $user['staff_name'];
+                                        } else {
+                                            echo '事業所';
+                                        }
+                                    ?>
                                     <small><?php echo '管理者'; ?></small>
                                 </p>
 
@@ -106,7 +122,8 @@
             <!-- sidebar menu: : style can be found in sidebar.less -->
             <ul class="sidebar-menu">
                 <li class="header"></li>
-                <?php if ($role == ROLE_COMPANY) { ?>
+                <?php if (!defined('ROLE_COMPANY')) define('ROLE_COMPANY', 3); ?>
+                <?php if (isset($role) && $role == ROLE_COMPANY) { ?>
                     <?php if ($page == 'payment'){ ?><li class="active"><?php }else{ ?><li><?php }?>
                         <a href="<?php echo company_url(); ?>payment">
                             <i class="fa fa-building"></i>

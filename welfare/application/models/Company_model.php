@@ -11,6 +11,32 @@ class Company_model extends Base_model
         $this->primary_key = 'company_id';
     }
 
+    /**
+     * 単一の事業所情報を取得
+     *
+     * @param array $where 検索条件
+     * @return array|null 事業所情報、見つからない場合はnull
+     */
+    function read($where)
+    {
+        $this->db->select('*');
+        $this->db->from($this->table);
+
+        if (is_array($where)) {
+            foreach ($where as $key => $value) {
+                $this->db->where($key, $value);
+            }
+        }
+
+        $this->db->where('del_flag', 0);
+        $this->db->limit(1);
+
+        $query = $this->db->get();
+        $result = $query->row_array();
+
+        return $result ? $result : null;
+    }
+
     function getList($select,$where_data, $count_flag=false,$page=10, $offset=0,$order_by='')
     {
         if(empty($select)){

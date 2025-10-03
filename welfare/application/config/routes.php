@@ -90,6 +90,10 @@ $route['createPasswordUser'] = "login/createPasswordUser";
 $route['chat/(:any)'] = "chat/index/$1";
 $route['scenario'] = "scenario/index";
 
+// Stripe決済関連ルート
+$route['company/payment-history'] = 'company/payment_history';
+$route['company/payment-success'] = 'company/payment_success';
+$route['company/payment-cancel'] = 'company/payment_cancel';
 
 
 /* End of file routes.php */
