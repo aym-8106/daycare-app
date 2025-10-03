@@ -51,6 +51,7 @@ composer.lock
 
 # Stripe configuration (contains sensitive keys)
 welfare/application/config/stripe.php
+welfare/application/config/stripe_config.php
 welfare/vendor/stripe/
 
 # Image thumbnails
@@ -60,3 +61,7 @@ welfare/vendor/stripe/
 *.bak
 *.backup
 *.old
+
+# Windows reserved filenames
+nul
+*.nul
